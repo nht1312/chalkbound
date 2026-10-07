@@ -12,15 +12,24 @@ export interface ClientPhysics {
   readonly loadMs: number;
 }
 
+let rapierLoading: Promise<Rapier> | undefined;
+
 /**
- * Lazy-loads Rapier after first paint (SPEC_AUDIT R-06) and builds the static
- * level colliders. The dynamic import keeps the ~2 MB WASM module out of the
- * initial bundle.
+ * Lazy-loads and initialises Rapier once (SPEC_AUDIT R-06). The dynamic
+ * import keeps the WASM module out of the initial bundle.
  */
+export function loadRapier(): Promise<Rapier> {
+  rapierLoading ??= import('@dimforge/rapier3d-compat').then(async ({ default: rapier }) => {
+    await rapier.init();
+    return rapier;
+  });
+  return rapierLoading;
+}
+
+/** Loads Rapier and builds the client's own static level colliders. */
 export async function loadPhysics(level: LevelData): Promise<ClientPhysics> {
   const start = performance.now();
-  const { default: rapier } = await import('@dimforge/rapier3d-compat');
-  await rapier.init();
+  const rapier = await loadRapier();
   const world = createStaticWorld(rapier, level.boxes);
   return { rapier, world, loadMs: performance.now() - start };
 }

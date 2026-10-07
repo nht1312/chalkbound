@@ -4,6 +4,8 @@ import {
   SIMULATION,
   SIMULATION_TIMESTEP,
   SimulationHost,
+  type LevelData,
+  type Rapier,
   type Transport,
 } from '@chalkbound/shared';
 
@@ -17,8 +19,13 @@ export interface LocalAuthority {
  * (ARCHITECTURE D-01). The client never touches it directly: it only sees
  * the server end of the transport. Phase 8 replaces this with a real server.
  */
-export function startLocalAuthority(serverEnd: Transport): LocalAuthority {
-  const host = new SimulationHost(new MatchSimulation());
+export function startLocalAuthority(
+  serverEnd: Transport,
+  rapier: Rapier,
+  level: LevelData,
+): LocalAuthority {
+  const sim = new MatchSimulation(rapier, level);
+  const host = new SimulationHost(sim);
   host.connect(serverEnd);
 
   const runner = new FixedStepRunner(SIMULATION_TIMESTEP, () => host.step());
@@ -35,6 +42,7 @@ export function startLocalAuthority(serverEnd: Transport): LocalAuthority {
     dispose() {
       window.clearInterval(interval);
       serverEnd.close();
+      sim.dispose();
     },
   };
 }

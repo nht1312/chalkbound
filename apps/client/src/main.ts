@@ -18,7 +18,7 @@ import { browserScheduler } from './net/browserScheduler';
 import { linkConditionsFromUrl } from './net/linkConditionsFromUrl';
 import { startLocalAuthority } from './net/localAuthority';
 import { NetClient } from './net/NetClient';
-import { loadPhysics, type ClientPhysics } from './physics/loadPhysics';
+import { loadPhysics, loadRapier, type ClientPhysics } from './physics/loadPhysics';
 import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
 import { createClickToPlay } from './ui/clickToPlay';
@@ -43,8 +43,12 @@ function bootstrap(): void {
     conditions: link,
     scheduler: browserScheduler,
   });
-  startLocalAuthority(serverEnd);
   const net = new NetClient(clientEnd, browserScheduler);
+  // The authority needs physics too; until it starts, sent inputs are simply lost.
+  loadRapier().then(
+    (rapier) => startLocalAuthority(serverEnd, rapier, level),
+    (error: unknown) => console.error('Local authority failed to start', error),
+  );
 
   let physics: ClientPhysics | undefined;
   loadPhysics(level).then(

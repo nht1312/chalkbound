@@ -4,6 +4,7 @@ import {
   NETWORK,
   ProtocolError,
   type InputCommand,
+  type PlayerState,
   type Scheduler,
   type ServerMessage,
   type Transport,
@@ -24,6 +25,8 @@ export class NetClient {
   serverTick = 0;
   /** Highest input seq the authority has confirmed applying. */
   lastAckedSeq = 0;
+  /** The local player's state as of `lastAckedSeq`, from the newest snapshot. */
+  authoritativePlayer: PlayerState | undefined;
   protocolErrors = 0;
 
   private unacked: InputCommand[] = [];
@@ -88,8 +91,10 @@ export class NetClient {
         break;
       }
       case 'snapshot':
-        if (message.lastProcessedSeq > this.lastAckedSeq) {
+        // Unreliable snapshots may arrive out of order: keep only the newest.
+        if (message.lastProcessedSeq >= this.lastAckedSeq) {
           this.lastAckedSeq = message.lastProcessedSeq;
+          this.authoritativePlayer = message.player;
           this.unacked = this.unacked.filter((c) => c.seq > this.lastAckedSeq);
         }
         break;

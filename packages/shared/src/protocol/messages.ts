@@ -1,3 +1,5 @@
+import type { PlayerState } from '../sim/stepPlayer';
+
 /**
  * Wire message types. Upstream messages are intent; downstream messages are
  * fact (ARCHITECTURE §7). Phase 0 carries only what the loop plumbing needs.
@@ -50,4 +52,6 @@ export type ServerMessage =
       readonly serverTick: number;
       /** Highest input seq the server has applied for the receiving client. */
       readonly lastProcessedSeq: number;
+      /** The receiving player's authoritative state after `lastProcessedSeq`. */
+      readonly player: PlayerState;
     };

@@ -27,7 +27,7 @@ Phase 1 feel check.
   delay (`SPEC.md` §17), sprint and jump gated on stamina.
   *Accept:* arithmetic tests for drain, delay, regen cap, and gating.
 
-- [ ] **T3 — Authoritative player on the authority.**
+- [x] **T3 — Authoritative player on the authority.**
   `MatchSimulation` owns a Rapier world plus per-player bodies and applies one
   command per tick via `stepPlayer()`. Snapshot carries the receiving player's
   authoritative state (position, velocity, grounded, crouch, stamina) and

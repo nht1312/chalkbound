@@ -1,5 +1,6 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { PHYSICS } from '../config/physics';
+import { STATIC_GROUPS } from './collisionGroups';
 import type { StaticBox } from '../world/greyboxRoom';
 
 /** The initialised Rapier module. Callers own loading (`await RAPIER.init()`). */
@@ -14,7 +15,11 @@ export function createStaticWorld(rapier: Rapier, boxes: readonly StaticBox[]): 
   const world = new rapier.World(PHYSICS.gravity);
   for (const box of boxes) {
     const { center: c, halfExtents: h } = box;
-    world.createCollider(rapier.ColliderDesc.cuboid(h.x, h.y, h.z).setTranslation(c.x, c.y, c.z));
+    world.createCollider(
+      rapier.ColliderDesc.cuboid(h.x, h.y, h.z)
+        .setTranslation(c.x, c.y, c.z)
+        .setCollisionGroups(STATIC_GROUPS),
+    );
   }
   // One step registers the colliders with the broad phase so ray/shape casts see them.
   world.step();

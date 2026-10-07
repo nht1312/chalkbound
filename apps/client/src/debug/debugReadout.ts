@@ -51,6 +51,12 @@ export function createDebugReadout(sources: ReadoutSources): (timing: FrameTimin
       : 'physics loading…';
 
     const rtt = net.rttMs === undefined ? '—' : `${net.rttMs.toFixed(1)} ms`;
+    const p = net.authoritativePlayer;
+    const serverPlayer = p
+      ? `server pos ${p.position.x.toFixed(2)} ${p.position.y.toFixed(2)} ${p.position.z.toFixed(2)}` +
+        `  ${p.grounded ? 'ground' : 'air'}${p.crouching ? ' crouch' : ''}${p.sprinting ? ' sprint' : ''}` +
+        `  stamina ${p.stamina.value.toFixed(0)}`
+      : 'server pos —';
 
     return [
       `${timing.fps.toFixed(0)} fps  ${timing.frameMs.toFixed(1)} ms`,
@@ -59,6 +65,7 @@ export function createDebugReadout(sources: ReadoutSources): (timing: FrameTimin
       physicsLine,
       `loopback ${link.latencyMs}±${link.jitterMs} ms  loss ${(link.lossRate * 100).toFixed(0)}%`,
       `rtt ${rtt}  server tick ${net.serverTick}  unacked ${net.unackedCount}`,
+      serverPlayer,
       `up ${upBps.toFixed(0)} B/s (${upMps.toFixed(0)}/s)  down ${downBps.toFixed(0)} B/s (${downMps.toFixed(0)}/s)`,
     ];
   };

@@ -1,13 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import RAPIER from '@dimforge/rapier3d-compat';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { FIXED_DT, TICKS_PER_SNAPSHOT } from '../config/simulation';
 import { createLoopbackPair } from '../net/loopbackTransport';
 import { decodeServerMessage, encodeClientMessage } from '../protocol/codec';
 import type { ServerMessage } from '../protocol/messages';
 import { ManualScheduler, seededRandom } from '../testing/ManualScheduler';
+import { vec3 } from '../math/vec';
+import type { LevelData } from '../world/greyboxRoom';
 import { MatchSimulation } from './MatchSimulation';
 import { SimulationHost } from './SimulationHost';
 
 const TICK_MS = FIXED_DT * 1000;
+
+const level: LevelData = {
+  boxes: [{ id: 'floor', kind: 'floor', center: vec3(0, -0.5, 0), halfExtents: vec3(50, 0.5, 50) }],
+  spawn: vec3(0, 0, 0),
+};
+
+beforeAll(async () => {
+  await RAPIER.init();
+});
 
 function setup(latencyMs: number, lossRate = 0) {
   const scheduler = new ManualScheduler();
@@ -16,7 +28,7 @@ function setup(latencyMs: number, lossRate = 0) {
     scheduler,
     random: seededRandom(11),
   });
-  const host = new SimulationHost(new MatchSimulation());
+  const host = new SimulationHost(new MatchSimulation(RAPIER, level));
   host.connect(server);
   const inbox: ServerMessage[] = [];
   client.onMessage((data) => inbox.push(decodeServerMessage(data)));
@@ -64,6 +76,24 @@ describe('SimulationHost over LoopbackTransport', () => {
     run(TICKS_PER_SNAPSHOT * 4);
     const last = inbox.filter((m) => m.type === 'snapshot').at(-1);
     expect(last).toMatchObject({ lastProcessedSeq: 3 });
+  });
+
+  it('sends the receiving player its authoritative state, moved by its inputs', () => {
+    const { client, run, inbox } = setup(10);
+    const walk = { tick: 0, moveX: 0, moveZ: 1, yaw: 0, pitch: 0, buttons: 0 };
+    client.send(
+      encodeClientMessage({
+        type: 'inputBatch',
+        commands: [1, 2, 3, 4, 5, 6, 7, 8].map((seq) => ({ ...walk, seq })),
+      }),
+      'unreliable',
+    );
+    run(TICKS_PER_SNAPSHOT * 6);
+    const last = inbox.filter((m) => m.type === 'snapshot').at(-1);
+    if (last?.type !== 'snapshot') throw new Error('no snapshot');
+    expect(last.lastProcessedSeq).toBe(8);
+    expect(last.player.position.z).toBeLessThan(0);
+    expect(last.player.grounded).toBe(true);
   });
 
   it('drops malformed messages without throwing', () => {

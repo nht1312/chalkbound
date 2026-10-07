@@ -40,10 +40,13 @@ export class SimulationHost {
     if (this.sim.tick % TICKS_PER_SNAPSHOT !== 0) return;
 
     for (const [id, { transport }] of this.connections) {
+      const player = this.sim.playerState(id);
+      if (!player) continue;
       this.send(transport, {
         type: 'snapshot',
         serverTick: this.sim.tick,
         lastProcessedSeq: this.sim.lastProcessedSeq(id),
+        player,
       });
     }
   }

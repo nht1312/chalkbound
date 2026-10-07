@@ -8,6 +8,7 @@ import {
   encodeServerMessage,
   ProtocolError,
 } from './codec';
+import type { PlayerState } from '../sim/stepPlayer';
 import { Button, type InputCommand } from './messages';
 
 const command: InputCommand = {
@@ -61,11 +62,59 @@ describe('client messages', () => {
 });
 
 describe('server messages', () => {
-  it('round-trips pong and snapshot exactly', () => {
+  it('round-trips pong exactly', () => {
     const pong = { type: 'pong', id: 7, clientTime: 99.5, serverTick: 3600 } as const;
-    const snapshot = { type: 'snapshot', serverTick: 3600, lastProcessedSeq: 42 } as const;
     expect(decodeServerMessage(encodeServerMessage(pong))).toEqual(pong);
-    expect(decodeServerMessage(encodeServerMessage(snapshot))).toEqual(snapshot);
+  });
+
+  const player: PlayerState = {
+    position: { x: 1.234567891, y: 0.02, z: -3.75 },
+    velocity: { x: 2.8, y: -4.2, z: 0.1 },
+    grounded: true,
+    crouching: false,
+    jumpHeld: true,
+    sprinting: true,
+    stamina: { value: 63.333333333, regenDelay: 0.4166666 },
+  };
+
+  it('round-trips a snapshot with the player state at float32 precision', () => {
+    const snapshot = { type: 'snapshot', serverTick: 3600, lastProcessedSeq: 42, player } as const;
+    const encoded = encodeServerMessage(snapshot);
+    expect(encoded.byteLength).toBe(42);
+
+    const decoded = decodeServerMessage(encoded);
+    if (decoded.type !== 'snapshot') throw new Error('wrong type');
+    expect(decoded.serverTick).toBe(3600);
+    expect(decoded.lastProcessedSeq).toBe(42);
+    const f = Math.fround;
+    expect(decoded.player).toEqual({
+      position: { x: f(1.234567891), y: f(0.02), z: f(-3.75) },
+      velocity: { x: f(2.8), y: f(-4.2), z: f(0.1) },
+      grounded: true,
+      crouching: false,
+      jumpHeld: true,
+      sprinting: true,
+      stamina: { value: f(63.333333333), regenDelay: f(0.4166666) },
+    });
+  });
+
+  it('round-trips every flag combination', () => {
+    for (let bits = 0; bits < 16; bits++) {
+      const flags = {
+        grounded: (bits & 1) !== 0,
+        crouching: (bits & 2) !== 0,
+        jumpHeld: (bits & 4) !== 0,
+        sprinting: (bits & 8) !== 0,
+      };
+      const snapshot = {
+        type: 'snapshot',
+        serverTick: 1,
+        lastProcessedSeq: 1,
+        player: { ...player, ...flags },
+      } as const;
+      const decoded = decodeServerMessage(encodeServerMessage(snapshot));
+      expect(decoded).toMatchObject({ player: flags });
+    }
   });
 });
 

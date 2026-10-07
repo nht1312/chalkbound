@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import RAPIER from '@dimforge/rapier3d-compat';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  createGreyboxRoom,
   createLoopbackPair,
   FIXED_DT,
   MatchSimulation,
@@ -11,6 +13,10 @@ import { NetClient } from './NetClient';
 
 const TICK_MS = FIXED_DT * 1000;
 
+beforeAll(async () => {
+  await RAPIER.init();
+});
+
 function setup(latencyMs: number, lossRate = 0) {
   const scheduler = new ManualScheduler();
   const [clientEnd, serverEnd] = createLoopbackPair({
@@ -18,7 +24,7 @@ function setup(latencyMs: number, lossRate = 0) {
     scheduler,
     random: seededRandom(5),
   });
-  const host = new SimulationHost(new MatchSimulation());
+  const host = new SimulationHost(new MatchSimulation(RAPIER, createGreyboxRoom()));
   host.connect(serverEnd);
   const net = new NetClient(clientEnd, scheduler);
 
@@ -57,6 +63,15 @@ describe('NetClient over loopback', () => {
     expect(net.lastAckedSeq).toBeGreaterThan(100);
     // ~100 ms RTT plus snapshot cadence ≈ 9 ticks in flight; never unbounded.
     expect(net.unackedCount).toBeLessThan(16);
+  });
+
+  it('exposes the authoritative player state, moved by the sent commands', () => {
+    const { net, tick } = setup(20);
+    expect(net.authoritativePlayer).toBeUndefined();
+    for (let i = 0; i < 60; i++) tick();
+    const start = createGreyboxRoom().spawn;
+    expect(net.authoritativePlayer?.position.z).toBeLessThan(start.z - 1);
+    expect(net.authoritativePlayer?.grounded).toBe(true);
   });
 
   it('still gets every command applied under 20% packet loss thanks to resends', () => {

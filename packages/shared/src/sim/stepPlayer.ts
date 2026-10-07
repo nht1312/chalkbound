@@ -2,6 +2,7 @@ import type RAPIER from '@dimforge/rapier3d-compat';
 import { MOVEMENT } from '../config/movement';
 import { PHYSICS } from '../config/physics';
 import { vec3, type Vec3 } from '../math/vec';
+import { PLAYER_GROUPS, PLAYER_MOVEMENT_QUERY } from '../physics/collisionGroups';
 import type { PhysicsWorld, Rapier } from '../physics/staticWorld';
 import { Button, type InputCommand } from '../protocol/messages';
 import { canJump, canSprint, FULL_STAMINA, updateStamina, type StaminaState } from './stamina';
@@ -71,7 +72,9 @@ export function initialPlayerState(feet: Vec3): PlayerState {
 export function createPlayerBody(rapier: Rapier, world: PhysicsWorld): PlayerBody {
   const standingHalfHeight = capsuleHalfHeight(capsule.standingHeight);
   const collider = world.createCollider(
-    rapier.ColliderDesc.capsule(standingHalfHeight, capsule.radius),
+    rapier.ColliderDesc.capsule(standingHalfHeight, capsule.radius).setCollisionGroups(
+      PLAYER_GROUPS,
+    ),
   );
 
   const controller = world.createCharacterController(kcc.skinWidth);
@@ -155,7 +158,7 @@ export function stepPlayer(
   const dy = airborne ? ((startVy + vy) / 2) * dt : -settle;
 
   const desired = { x: vx * dt, y: dy, z: vz * dt };
-  body.controller.computeColliderMovement(body.collider, desired);
+  body.controller.computeColliderMovement(body.collider, desired, undefined, PLAYER_MOVEMENT_QUERY);
   const moved = body.controller.computedMovement();
   const grounded = body.controller.computedGrounded();
 
@@ -203,7 +206,7 @@ function groundGap(
     kcc.snapToGround + kcc.skinWidth,
     true,
     undefined,
-    undefined,
+    PLAYER_MOVEMENT_QUERY,
     body.collider,
   )?.time_of_impact;
 }
@@ -226,7 +229,7 @@ function hasRoomToStand(feet: Vec3, body: PlayerBody, world: PhysicsWorld): bool
       return false; // stop at the first hit
     },
     undefined,
-    undefined,
+    PLAYER_MOVEMENT_QUERY,
     body.collider,
   );
   return !blocked;

@@ -101,5 +101,6 @@ export function createGreyboxRoom(): LevelData {
     }
   }
 
-  return { boxes, spawn: vec3(0, 0, halfD - 1) };
+  // Spawn in the aisle between the first two desk columns, facing the blackboard (-Z).
+  return { boxes, spawn: vec3(DESK.spacingX / 2, 0, halfD - 1) };
 }

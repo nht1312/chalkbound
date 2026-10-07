@@ -1,5 +1,6 @@
 import { NETWORK } from '../config/network';
 import { dequantizeAngle, dequantizeUnit, quantizeAngle, quantizeUnit } from '../math/quantize';
+import type { PlayerState } from '../sim/stepPlayer';
 import type { ClientMessage, InputCommand, ServerMessage } from './messages';
 
 /** First byte of every message. Values are part of the wire format; never reuse one. */
@@ -12,6 +13,18 @@ const Tag = {
 
 /** u32 seq, u32 tick, i8 moveX, i8 moveZ, u16 yaw, u16 pitch, u16 buttons. */
 const INPUT_COMMAND_BYTES = 16;
+/** f32×3 position, f32×3 velocity, u8 flags, f32 stamina, f32 regen delay. */
+const PLAYER_STATE_BYTES = 33;
+/** u8 tag, u32 serverTick, u32 lastProcessedSeq, player state. */
+const SNAPSHOT_BYTES = 9 + PLAYER_STATE_BYTES;
+
+/** Bits of the player-state flags byte. */
+const PlayerFlag = {
+  Grounded: 1 << 0,
+  Crouching: 1 << 1,
+  JumpHeld: 1 << 2,
+  Sprinting: 1 << 3,
+} as const;
 const LITTLE_ENDIAN = true;
 
 /** Thrown for malformed or unknown messages. Receivers drop the message. */
@@ -87,9 +100,14 @@ export function encodeServerMessage(message: ServerMessage): Uint8Array {
         .u16(message.id)
         .f64(message.clientTime)
         .u32(message.serverTick).bytes;
-    case 'snapshot':
-      return new Writer(9).u8(Tag.Snapshot).u32(message.serverTick).u32(message.lastProcessedSeq)
-        .bytes;
+    case 'snapshot': {
+      const writer = new Writer(SNAPSHOT_BYTES)
+        .u8(Tag.Snapshot)
+        .u32(message.serverTick)
+        .u32(message.lastProcessedSeq);
+      writePlayerState(writer, message.player);
+      return writer.bytes;
+    }
   }
 }
 
@@ -112,6 +130,7 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
         type: 'snapshot',
         serverTick: reader.u32(),
         lastProcessedSeq: reader.u32(),
+        player: readPlayerState(reader),
       } as const;
       reader.end();
       return message;
@@ -119,6 +138,43 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
     default:
       throw new ProtocolError(`Unknown server message tag ${tag}`);
   }
+}
+
+/**
+ * Player state at float32 precision: ~0.1 mm at 1 km, far below any
+ * reconciliation threshold, at half the size of float64.
+ */
+function writePlayerState(writer: Writer, p: PlayerState): void {
+  const flags =
+    (p.grounded ? PlayerFlag.Grounded : 0) |
+    (p.crouching ? PlayerFlag.Crouching : 0) |
+    (p.jumpHeld ? PlayerFlag.JumpHeld : 0) |
+    (p.sprinting ? PlayerFlag.Sprinting : 0);
+  writer
+    .f32(p.position.x)
+    .f32(p.position.y)
+    .f32(p.position.z)
+    .f32(p.velocity.x)
+    .f32(p.velocity.y)
+    .f32(p.velocity.z)
+    .u8(flags)
+    .f32(p.stamina.value)
+    .f32(p.stamina.regenDelay);
+}
+
+function readPlayerState(reader: Reader): PlayerState {
+  const position = { x: reader.f32(), y: reader.f32(), z: reader.f32() };
+  const velocity = { x: reader.f32(), y: reader.f32(), z: reader.f32() };
+  const flags = reader.u8();
+  return {
+    position,
+    velocity,
+    grounded: (flags & PlayerFlag.Grounded) !== 0,
+    crouching: (flags & PlayerFlag.Crouching) !== 0,
+    jumpHeld: (flags & PlayerFlag.JumpHeld) !== 0,
+    sprinting: (flags & PlayerFlag.Sprinting) !== 0,
+    stamina: { value: reader.f32(), regenDelay: reader.f32() },
+  };
 }
 
 class Writer {
@@ -148,6 +204,11 @@ class Writer {
   }
   u32(v: number): this {
     this.view.setUint32(this.offset, v, LITTLE_ENDIAN);
+    this.offset += 4;
+    return this;
+  }
+  f32(v: number): this {
+    this.view.setFloat32(this.offset, v, LITTLE_ENDIAN);
     this.offset += 4;
     return this;
   }
@@ -187,6 +248,12 @@ class Reader {
   u32(): number {
     this.need(4);
     const v = this.view.getUint32(this.offset, LITTLE_ENDIAN);
+    this.offset += 4;
+    return v;
+  }
+  f32(): number {
+    this.need(4);
+    const v = this.view.getFloat32(this.offset, LITTLE_ENDIAN);
     this.offset += 4;
     return v;
   }
