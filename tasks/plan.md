@@ -56,7 +56,7 @@ validates it and decides the outcome.
   *Accept:* codec round-trip and malformed-input tests, plus a loopback test
   where interact raises chalk.
 
-- [ ] **T5 — Client: chalk boxes, interact prompt, HUD meter.**
+- [x] **T5 — Client: chalk boxes, interact prompt, HUD meter.**
   - Greybox chalk boxes render, and empty ones are hidden.
   - A pure function picks the targeted box (in range, near the view centre).
   - A "Press E" prompt shows, and an E press sends one intent.

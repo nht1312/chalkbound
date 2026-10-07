@@ -1,4 +1,4 @@
-import { MOVEMENT } from '@chalkbound/shared';
+import { INTERACTION, MOVEMENT } from '@chalkbound/shared';
 
 /** Client-only tuning values. Gameplay rules belong in @chalkbound/shared. */
 export const CLIENT_CONFIG = {
@@ -54,6 +54,13 @@ export const CLIENT_CONFIG = {
         sprint: { offset: { x: 0, y: -0.06, z: 0.04 }, pitch: -0.35, sway: 0.03 },
       },
     },
+  },
+  /** Aiming at world objects for the interact prompt (Phase 2 T5). */
+  targeting: {
+    /** The authority's reach, so the prompt never offers what the server will refuse. */
+    range: INTERACTION.range,
+    /** Half-angle of the aim cone around the screen centre. */
+    maxAngleRadians: (12 * Math.PI) / 180,
   },
   render: {
     maxPixelRatio: 2,

@@ -2,6 +2,8 @@ import { PerspectiveCamera } from 'three';
 import {
   createGreyboxRoom,
   createLoopbackPair,
+  ECONOMY,
+  eyePosition,
   FixedStepRunner,
   initialPlayerState,
   quantizeInputCommand,
@@ -23,8 +25,12 @@ import { startLocalAuthority } from './net/localAuthority';
 import { NetClient } from './net/NetClient';
 import { loadPhysics, loadRapier, type ClientPhysics } from './physics/loadPhysics';
 import { PlayerPredictor } from './player/PlayerPredictor';
+import { lookDirection, selectInteractTarget } from './interaction/targeting';
+import { createChalkBoxes } from './render/createChalkBoxes';
 import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
+import { createChalkMeter } from './ui/chalkMeter';
+import { createInteractPrompt } from './ui/interactPrompt';
 import { createPauseMenu } from './ui/pauseMenu';
 import { browserSettingsStore, loadSettings, saveSettings } from './ui/settings';
 import './style.css';
@@ -45,6 +51,7 @@ function bootstrap(): void {
   let handRig = initialHandRig();
   const { renderer } = createRenderer(canvas, [camera, viewmodel.camera], CLIENT_CONFIG.render);
   const scene = createTestScene(level);
+  const chalkBoxes = createChalkBoxes(scene, level.chalkBoxes);
 
   // Authority behind a loopback link (ARCHITECTURE D-01); Phase 8 swaps in a socket.
   const link = linkConditionsFromUrl(window.location.search);
@@ -109,6 +116,10 @@ function bootstrap(): void {
     }),
   );
 
+  const chalkMeter = createChalkMeter(root, ECONOMY.chalk.max);
+  const prompt = createInteractPrompt(root);
+  let interactWasDown = false;
+
   const isDown = input.isDown.bind(input);
   let clientTick = 0;
   let reconciledSnapshots = 0;
@@ -162,6 +173,26 @@ function bootstrap(): void {
     }
     predictor?.decayVisualOffset(frameDelta);
     look.applyTo(camera);
+
+    // Chalk: everything shown comes from the newest snapshot; E only sends an intent.
+    chalkBoxes.update(net.chalkBoxes);
+    chalkMeter.update(net.chalk);
+    const target = player
+      ? selectInteractTarget(
+          eyePosition(player),
+          lookDirection(look.yaw, look.pitch),
+          level.chalkBoxes.map((b) => ({ ...b, remaining: net.chalkBoxes.get(b.id) })),
+          CLIENT_CONFIG.targeting,
+        )
+      : undefined;
+    chalkBoxes.setTargeted(target);
+    const meterFull = net.chalk === ECONOMY.chalk.max;
+    prompt.show(target === undefined ? undefined : meterFull ? 'Chalk full' : 'E  Pick up chalk');
+    const interactDown = input.isDown('Interact');
+    if (interactDown && !interactWasDown && target !== undefined && !meterFull) {
+      net.sendInteract(target);
+    }
+    interactWasDown = interactDown;
     // World, then hands over a cleared depth buffer so they never clip into walls.
     renderer.info.reset();
     renderer.clear();

@@ -79,6 +79,7 @@ export function createDebugReadout(sources: ReadoutSources): (timing: FrameTimin
       `rtt ${rtt}  server tick ${net.serverTick}  unacked ${net.unackedCount}`,
       serverPlayer,
       predictionLine(sources.predictor()),
+      `chalk ${net.chalk ?? '—'}  boxes ${[...net.chalkBoxes].map(([id, n]) => `${id}:${n}`).join(' ') || '—'}`,
       `up ${upBps.toFixed(0)} B/s (${upMps.toFixed(0)}/s)  down ${downBps.toFixed(0)} B/s (${downMps.toFixed(0)}/s)`,
     ];
   };
