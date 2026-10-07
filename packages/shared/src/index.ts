@@ -5,6 +5,7 @@ export { MOVEMENT } from './config/movement';
 export { STAMINA } from './config/stamina';
 export { ECONOMY } from './config/economy';
 export { INVENTORY } from './config/inventory';
+export { INTERACTION } from './config/interaction';
 
 export {
   advanceFixedTimestep,
@@ -41,7 +42,13 @@ export {
   type Scheduler,
 } from './net/loopbackTransport';
 
-export { MatchSimulation, type PlayerId } from './sim/MatchSimulation';
+export {
+  MatchSimulation,
+  type InteractOutcome,
+  type InteractResult,
+  type PlayerId,
+} from './sim/MatchSimulation';
+export { eyePosition, withinInteractRange } from './sim/interaction';
 export { SimulationHost } from './sim/SimulationHost';
 export {
   createPlayerBody,
@@ -70,7 +77,9 @@ export {
 } from './sim/inventory';
 
 export {
+  CHALK_BOX_SIZE,
   createGreyboxRoom,
+  type ChalkBoxSpawn,
   type LevelData,
   type StaticBox,
   type SurfaceKind,

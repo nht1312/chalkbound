@@ -11,11 +11,25 @@ export interface StaticBox {
   readonly halfExtents: Vec3;
 }
 
+/** An authored chalk box. Boxes are pickups, not colliders: players walk through them. */
+export interface ChalkBoxSpawn {
+  /** Stable id, sent on the wire as a u16. */
+  readonly id: number;
+  /** Centre of the box. */
+  readonly position: Vec3;
+  /** Chalk it holds; defaults to ECONOMY.chalk.perBox. */
+  readonly amount?: number;
+}
+
 export interface LevelData {
   readonly boxes: readonly StaticBox[];
   /** Player feet position at spawn. */
   readonly spawn: Vec3;
+  readonly chalkBoxes: readonly ChalkBoxSpawn[];
 }
+
+/** Visual size of a chalk box, m (greybox). */
+export const CHALK_BOX_SIZE = { width: 0.25, height: 0.1, depth: 0.15 } as const;
 
 /** Room dimensions in metres — roughly one classroom. */
 const ROOM = { width: 10, depth: 8, height: 3.2, wallThickness: 0.2, floorThickness: 0.2 } as const;
@@ -101,6 +115,18 @@ export function createGreyboxRoom(): LevelData {
     }
   }
 
+  // Chalk: on the front-left desk, in the back-left corner, and on the floor
+  // below the blackboard (the chalk tray of SPEC §5).
+  const onFloor = CHALK_BOX_SIZE.height / 2;
+  const chalkBoxes: ChalkBoxSpawn[] = [
+    {
+      id: 1,
+      position: vec3(-DESK.spacingX, DESK.height + onFloor, -DESK.spacingZ + DESK.offsetZ),
+    },
+    { id: 2, position: vec3(-halfW + 0.5, onFloor, halfD - 0.5) },
+    { id: 3, position: vec3(1.5, onFloor, -halfD + 0.3) },
+  ];
+
   // Spawn in the aisle between the first two desk columns, facing the blackboard (-Z).
-  return { boxes, spawn: vec3(DESK.spacingX / 2, 0, halfD - 1) };
+  return { boxes, spawn: vec3(DESK.spacingX / 2, 0, halfD - 1), chalkBoxes };
 }

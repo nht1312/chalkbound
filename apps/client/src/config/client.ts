@@ -1,3 +1,5 @@
+import { MOVEMENT } from '@chalkbound/shared';
+
 /** Client-only tuning values. Gameplay rules belong in @chalkbound/shared. */
 export const CLIENT_CONFIG = {
   camera: {
@@ -12,9 +14,9 @@ export const CLIENT_CONFIG = {
   },
   /** Cosmetic camera motion (ARCHITECTURE §4.3). */
   feel: {
-    /** Eye height above the feet, metres. Capsule is 1.8 m standing, 1.2 m crouched. */
-    standingEyeHeight: 1.65,
-    crouchingEyeHeight: 1.05,
+    /** Eye heights are shared: the authority measures interaction reach from the eyes. */
+    standingEyeHeight: MOVEMENT.eyeHeight.standing,
+    crouchingEyeHeight: MOVEMENT.eyeHeight.crouching,
     eyeHeightSmoothing: 0.08,
     baseFov: 75,
     sprintFovBoost: 8,

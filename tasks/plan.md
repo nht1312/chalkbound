@@ -38,7 +38,7 @@ validates it and decides the outcome.
   *Accept:* tests for add, remove, stack limits, a full inventory, and invalid
   slots.
 
-- [ ] **T3 — Authoritative chalk boxes and pickup.**
+- [x] **T3 — Authoritative chalk boxes and pickup.**
   Level data gets chalk box spawn points in the greybox room. `MatchSimulation`
   tracks each player's chalk and each box's remaining amount. `interact(player,
   boxId)` is validated by proximity and box state.

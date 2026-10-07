@@ -23,6 +23,15 @@ export const MOVEMENT = {
   /** Jump apex height above the take-off point, m; clears 0.75 m desks [PLACEHOLDER] */
   jumpHeight: 0.9,
 
+  /**
+   * Eye height above the feet, m. Shared because the authority measures
+   * interaction range from the eyes; the client camera eases between these.
+   */
+  eyeHeight: {
+    standing: 1.65,
+    crouching: 1.05,
+  },
+
   capsule: {
     radius: 0.3,
     /** Total standing height including the hemispherical caps, m. */
