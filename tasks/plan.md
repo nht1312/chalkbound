@@ -43,7 +43,7 @@ Phase 1 feel check.
   *Accept:* a loopback test at 150 ms latency + 5% loss shows prediction and
   authority converge, with zero corrections when inputs are deterministic.
 
-- [ ] **T5 — FPP camera feel and pointer-lock handling.**
+- [x] **T5 — FPP camera feel and pointer-lock handling.**
   View bob tied to the movement cycle, crouch eye-height lerp, sprint FOV,
   configurable sensitivity, pause overlay on pointer-lock loss.
   *Accept:* unit tests for the bob, lerp, and FOV curves; manual feel check.

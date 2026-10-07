@@ -23,7 +23,8 @@ import { loadPhysics, loadRapier, type ClientPhysics } from './physics/loadPhysi
 import { PlayerPredictor } from './player/PlayerPredictor';
 import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
-import { createClickToPlay } from './ui/clickToPlay';
+import { createPauseMenu } from './ui/pauseMenu';
+import { browserSettingsStore, loadSettings, saveSettings } from './ui/settings';
 import './style.css';
 
 function bootstrap(): void {
@@ -72,11 +73,24 @@ function bootstrap(): void {
   );
 
   const input = new InputState(canvas, DEFAULT_BINDINGS);
+  const settingsStore = browserSettingsStore();
+  const settings = loadSettings(
+    settingsStore,
+    { mouseSensitivity: camCfg.mouseSensitivity },
+    camCfg.sensitivityLimits,
+  );
   const look = new FppCamera({
-    sensitivity: camCfg.mouseSensitivity,
+    sensitivity: settings.mouseSensitivity,
     pitchLimit: camCfg.pitchLimit,
   });
-  createClickToPlay(root, input);
+  createPauseMenu(root, input, {
+    sensitivity: settings.mouseSensitivity,
+    limits: camCfg.sensitivityLimits,
+    onSensitivityChange(mouseSensitivity) {
+      look.setSensitivity(mouseSensitivity);
+      saveSettings(settingsStore, { mouseSensitivity });
+    },
+  });
 
   const stats = createStatsOverlay(
     root,

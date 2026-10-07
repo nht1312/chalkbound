@@ -34,6 +34,13 @@ describe('FppCamera', () => {
     expect(forward.z).toBeCloseTo(0);
   });
 
+  it('applies a sensitivity change to subsequent movement', () => {
+    const cam = new FppCamera(config);
+    cam.setSensitivity(config.sensitivity * 2);
+    cam.applyMouseDelta(10, 0);
+    expect(cam.yaw).toBeCloseTo(-10 * config.sensitivity * 2);
+  });
+
   it('looks up when the mouse moves up', () => {
     const cam = new FppCamera(config);
     cam.applyMouseDelta(0, -50);

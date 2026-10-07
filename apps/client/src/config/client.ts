@@ -3,8 +3,10 @@ export const CLIENT_CONFIG = {
   camera: {
     near: 0.05,
     far: 200,
-    /** Radians of rotation per pixel of mouse movement. */
+    /** Default radians of rotation per pixel; the player can change it in the pause menu. */
     mouseSensitivity: 0.0022,
+    /** Allowed sensitivity range for the setting. */
+    sensitivityLimits: { min: 0.0005, max: 0.006 },
     /** Pitch clamp in radians (just under 90° to avoid gimbal flip). */
     pitchLimit: (89 * Math.PI) / 180,
   },

@@ -46,13 +46,23 @@ export class InputState {
     return this.canvas.ownerDocument.pointerLockElement === this.canvas;
   }
 
-  requestPointerLock(): void {
-    // Raw input skips OS mouse acceleration where supported; fall back if rejected.
-    this.canvas.requestPointerLock({ unadjustedMovement: true }).catch(() => {
-      this.canvas.requestPointerLock().catch((error: unknown) => {
-        console.warn('Pointer lock was refused', error);
-      });
-    });
+  /**
+   * Requests pointer lock; resolves to whether it was granted. Browsers refuse
+   * a re-lock for about a second after the player presses Esc.
+   */
+  async requestPointerLock(): Promise<boolean> {
+    try {
+      // Raw input skips OS mouse acceleration where supported.
+      await this.canvas.requestPointerLock({ unadjustedMovement: true });
+      return true;
+    } catch {
+      try {
+        await this.canvas.requestPointerLock();
+        return true;
+      } catch {
+        return false;
+      }
+    }
   }
 
   isDown(action: Action): boolean {

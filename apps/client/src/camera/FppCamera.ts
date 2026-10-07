@@ -11,14 +11,22 @@ const TWO_PI = Math.PI * 2;
 export class FppCamera {
   yaw = 0;
   pitch = 0;
+  private sensitivity: number;
 
-  constructor(private readonly config: LookConfig) {}
+  constructor(private readonly config: LookConfig) {
+    this.sensitivity = config.sensitivity;
+  }
+
+  /** Changes the look rate for subsequent mouse movement (player setting). */
+  setSensitivity(sensitivity: number): void {
+    this.sensitivity = sensitivity;
+  }
 
   /** Applies a mouse delta in pixels. Moving the mouse right/up turns right/up. */
   applyMouseDelta(dx: number, dy: number): void {
-    this.yaw = wrapAngle(this.yaw - dx * this.config.sensitivity);
+    this.yaw = wrapAngle(this.yaw - dx * this.sensitivity);
     const limit = this.config.pitchLimit;
-    this.pitch = Math.min(limit, Math.max(-limit, this.pitch - dy * this.config.sensitivity));
+    this.pitch = Math.min(limit, Math.max(-limit, this.pitch - dy * this.sensitivity));
   }
 
   applyTo(target: Object3D): void {
