@@ -16,6 +16,18 @@ export interface ViewmodelLens {
   readonly far: number;
 }
 
+interface BoxSize {
+  readonly width: number;
+  readonly height: number;
+  readonly length: number;
+}
+
+/** Greybox arm dimensions, metres (ROADMAP: primitives until Phase 6). */
+export interface ArmDimensions {
+  readonly forearm: BoxSize;
+  readonly hand: BoxSize;
+}
+
 export interface Viewmodel {
   readonly scene: Scene;
   readonly camera: PerspectiveCamera;
@@ -24,9 +36,6 @@ export interface Viewmodel {
   apply(transforms: { left: HandTransform; right: HandTransform }): void;
 }
 
-/** Greybox arm dimensions, metres (ROADMAP: primitives until Phase 6). */
-const FOREARM = { width: 0.07, height: 0.07, length: 0.32 } as const;
-const HAND = { width: 0.09, height: 0.05, length: 0.1 } as const;
 const SKIN = 0xc9a58a;
 
 /**
@@ -35,7 +44,7 @@ const SKIN = 0xc9a58a;
  * and cannot clip into walls; their narrow FOV and near plane are independent
  * of the world camera's sprint FOV.
  */
-export function createViewmodel(lens: ViewmodelLens): Viewmodel {
+export function createViewmodel(lens: ViewmodelLens, arm: ArmDimensions): Viewmodel {
   const scene = new Scene();
   const camera = new PerspectiveCamera(lens.fov, 1, lens.near, lens.far);
 
@@ -46,19 +55,20 @@ export function createViewmodel(lens: ViewmodelLens): Viewmodel {
   scene.add(key);
 
   const material = new MeshStandardMaterial({ color: SKIN, roughness: 0.8 });
-  const forearmGeometry = new BoxGeometry(FOREARM.width, FOREARM.height, FOREARM.length);
-  const handGeometry = new BoxGeometry(HAND.width, HAND.height, HAND.length);
+  const { forearm: f, hand: h } = arm;
+  const forearmGeometry = new BoxGeometry(f.width, f.height, f.length);
+  const handGeometry = new BoxGeometry(h.width, h.height, h.length);
 
   const makeArm = (name: string): Group => {
-    const arm = new Group();
-    arm.name = name;
+    const group = new Group();
+    group.name = name;
     // The group origin is the hand; the forearm extends back toward the camera.
     const hand = new Mesh(handGeometry, material);
     const forearm = new Mesh(forearmGeometry, material);
-    forearm.position.z = HAND.length / 2 + FOREARM.length / 2;
-    arm.add(hand, forearm);
-    scene.add(arm);
-    return arm;
+    forearm.position.z = h.length / 2 + f.length / 2;
+    group.add(hand, forearm);
+    scene.add(group);
+    return group;
   };
   const leftHand = makeArm('left-hand');
   const rightHand = makeArm('right-hand');

@@ -41,7 +41,7 @@ function bootstrap(): void {
   const feelCfg = CLIENT_CONFIG.feel;
   const camera = new PerspectiveCamera(feelCfg.baseFov, 1, camCfg.near, camCfg.far);
   let feel = initialCameraFeel(feelCfg);
-  const viewmodel = createViewmodel(CLIENT_CONFIG.hands.lens);
+  const viewmodel = createViewmodel(CLIENT_CONFIG.hands.lens, CLIENT_CONFIG.hands.arm);
   let handRig = initialHandRig();
   const { renderer } = createRenderer(canvas, [camera, viewmodel.camera], CLIENT_CONFIG.render);
   const scene = createTestScene(level);

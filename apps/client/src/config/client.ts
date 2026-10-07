@@ -32,13 +32,18 @@ export const CLIENT_CONFIG = {
   /** First-person hands (Phase 1 T6). Positions are view space, metres. */
   hands: {
     lens: { fov: 60, near: 0.01, far: 10 },
+    /** Feel check: the first arms (9 cm hands, 7 cm forearms) read as too big. */
+    arm: {
+      forearm: { width: 0.05, height: 0.05, length: 0.24 },
+      hand: { width: 0.065, height: 0.035, length: 0.07 },
+    },
     rig: {
       blendSmoothing: 0.12,
       minWalkSpeed: 0.3,
       breathing: { amplitude: 0.004, frequency: 0.25 },
       rest: {
-        left: { x: -0.22, y: -0.24, z: -0.45 },
-        right: { x: 0.22, y: -0.24, z: -0.45 },
+        left: { x: -0.2, y: -0.22, z: -0.48 },
+        right: { x: 0.2, y: -0.22, z: -0.48 },
       },
       poses: {
         idle: { offset: { x: 0, y: 0, z: 0 }, pitch: 0, sway: 0.006 },
