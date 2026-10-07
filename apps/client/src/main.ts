@@ -1,15 +1,15 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import { PerspectiveCamera } from 'three';
 import {
   createGreyboxRoom,
   createLoopbackPair,
-  FIXED_DT,
   FixedStepRunner,
+  initialPlayerState,
+  quantizeInputCommand,
   SIMULATION_TIMESTEP,
 } from '@chalkbound/shared';
 import { CLIENT_CONFIG } from './config/client';
 import { FppCamera } from './camera/FppCamera';
 import { createDebugReadout } from './debug/debugReadout';
-import { DebugMover } from './debug/debugMover';
 import { createStatsOverlay } from './debug/statsOverlay';
 import { DEFAULT_BINDINGS } from './input/bindings';
 import { buildInputCommand } from './input/commandBuilder';
@@ -19,6 +19,7 @@ import { linkConditionsFromUrl } from './net/linkConditionsFromUrl';
 import { startLocalAuthority } from './net/localAuthority';
 import { NetClient } from './net/NetClient';
 import { loadPhysics, loadRapier, type ClientPhysics } from './physics/loadPhysics';
+import { PlayerPredictor } from './player/PlayerPredictor';
 import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
 import { createClickToPlay } from './ui/clickToPlay';
@@ -50,9 +51,20 @@ function bootstrap(): void {
     (error: unknown) => console.error('Local authority failed to start', error),
   );
 
+  // Prediction needs the client's own physics world; start from the authority's
+  // state if a snapshot has already arrived.
   let physics: ClientPhysics | undefined;
+  let predictor: PlayerPredictor | undefined;
   loadPhysics(level).then(
-    (loaded) => (physics = loaded),
+    (loaded) => {
+      physics = loaded;
+      predictor = new PlayerPredictor(
+        loaded.rapier,
+        loaded.world,
+        net.authoritativePlayer ?? initialPlayerState(level.spawn),
+        CLIENT_CONFIG.prediction,
+      );
+    },
     (error: unknown) => console.error('Physics failed to load', error),
   );
 
@@ -61,8 +73,6 @@ function bootstrap(): void {
     sensitivity: camCfg.mouseSensitivity,
     pitchLimit: camCfg.pitchLimit,
   });
-  const spawn = new Vector3(level.spawn.x, level.spawn.y + camCfg.eyeHeight, level.spawn.z);
-  const mover = new DebugMover(CLIENT_CONFIG.debugMover, spawn);
   createClickToPlay(root, input);
 
   const stats = createStatsOverlay(
@@ -74,15 +84,21 @@ function bootstrap(): void {
       link,
       cameraPosition: camera.position,
       physics: () => physics,
+      predictor: () => predictor,
     }),
   );
 
   const isDown = input.isDown.bind(input);
   let clientTick = 0;
+  let reconciledSnapshots = 0;
   const simulation = new FixedStepRunner(SIMULATION_TIMESTEP, () => {
     clientTick++;
-    net.sendInput(buildInputCommand(isDown, net.takeInputSeq(), clientTick, look.yaw, look.pitch));
-    mover.step(FIXED_DT, isDown, look.yaw, look.pitch);
+    // Quantize once: predict with exactly the command the authority will decode.
+    const command = quantizeInputCommand(
+      buildInputCommand(isDown, net.takeInputSeq(), clientTick, look.yaw, look.pitch),
+    );
+    predictor?.predict(command);
+    net.sendInput(command);
   });
 
   let lastTime: number | undefined;
@@ -94,10 +110,21 @@ function bootstrap(): void {
     const { dx, dy } = input.consumeMouseDelta();
     look.applyMouseDelta(dx, dy);
 
+    if (predictor && net.authoritativePlayer && net.snapshotCount !== reconciledSnapshots) {
+      reconciledSnapshots = net.snapshotCount;
+      predictor.reconcile(net.lastAckedSeq, net.authoritativePlayer);
+    }
     const alpha = simulation.advance(frameDelta);
     net.update();
 
-    mover.interpolate(alpha, camera.position);
+    const feet = predictor?.renderPosition(alpha) ?? level.spawn;
+    const crouching = predictor?.state.crouching ?? false;
+    camera.position.set(
+      feet.x,
+      feet.y + (crouching ? camCfg.crouchEyeHeight : camCfg.eyeHeight),
+      feet.z,
+    );
+    predictor?.decayVisualOffset(frameDelta);
     look.applyTo(camera);
     renderer.render(scene, camera);
     stats.update(frameDelta);
@@ -105,7 +132,9 @@ function bootstrap(): void {
 
   // Exposed only in dev builds for console inspection.
   if (import.meta.env.DEV) {
-    Object.assign(window, { chalkbound: { scene, camera, renderer, net } });
+    Object.assign(window, {
+      chalkbound: { scene, camera, renderer, net, predictor: () => predictor },
+    });
   }
 }
 

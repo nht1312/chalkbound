@@ -1,6 +1,7 @@
 import type { Vector3, WebGLRenderer } from 'three';
 import type { LinkConditions, TransportStats } from '@chalkbound/shared';
 import type { NetClient } from '../net/NetClient';
+import type { PlayerPredictor } from '../player/PlayerPredictor';
 import { groundDistance, type ClientPhysics } from '../physics/loadPhysics';
 import type { FrameTiming } from './statsOverlay';
 
@@ -11,10 +12,21 @@ export interface ReadoutSources {
   readonly cameraPosition: Vector3;
   /** Undefined until physics finishes loading. */
   physics(): ClientPhysics | undefined;
+  /** Undefined until physics finishes loading. */
+  predictor(): PlayerPredictor | undefined;
 }
 
 const MAX_GROUND_RAY = 50;
 const BYTES_PER_MB = 1024 * 1024;
+
+function predictionLine(predictor: PlayerPredictor | undefined): string {
+  if (!predictor) return 'prediction —';
+  const p = predictor.state.position;
+  return (
+    `predicted ${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)}` +
+    `  pending ${predictor.pendingCount}  corrections ${predictor.corrections}`
+  );
+}
 
 /** Chrome-only, non-standard; absent elsewhere. */
 interface PerformanceMemory {
@@ -66,6 +78,7 @@ export function createDebugReadout(sources: ReadoutSources): (timing: FrameTimin
       `loopback ${link.latencyMs}±${link.jitterMs} ms  loss ${(link.lossRate * 100).toFixed(0)}%`,
       `rtt ${rtt}  server tick ${net.serverTick}  unacked ${net.unackedCount}`,
       serverPlayer,
+      predictionLine(sources.predictor()),
       `up ${upBps.toFixed(0)} B/s (${upMps.toFixed(0)}/s)  down ${downBps.toFixed(0)} B/s (${downMps.toFixed(0)}/s)`,
     ];
   };

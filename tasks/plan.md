@@ -36,7 +36,7 @@ Phase 1 feel check.
   *Accept:* codec round-trip and quantisation bounds for the new fields; the
   simulation moves a player from submitted commands only.
 
-- [ ] **T4 — Client prediction and reconciliation.**
+- [x] **T4 — Client prediction and reconciliation.**
   The client runs `stepPlayer()` on its own world, records the predicted state
   per seq, and on each snapshot compares, rewinds, and replays the unacked
   commands. Visual correction is smoothed over ~100 ms. Replaces `DebugMover`.

@@ -4,8 +4,10 @@ export const CLIENT_CONFIG = {
     fovDegrees: 75,
     near: 0.05,
     far: 200,
-    /** Eye height above the floor in metres. */
+    /** Standing eye height above the feet, in metres. */
     eyeHeight: 1.65,
+    /** Crouching eye height above the feet (snaps for now; Phase 1 T5 lerps it). */
+    crouchEyeHeight: 1.05,
     /** Radians of rotation per pixel of mouse movement. */
     mouseSensitivity: 0.0022,
     /** Pitch clamp in radians (just under 90° to avoid gimbal flip). */
@@ -14,10 +16,17 @@ export const CLIENT_CONFIG = {
   render: {
     maxPixelRatio: 2,
   },
-  debugMover: {
-    /** Noclip speed in metres per second. */
-    speed: 4,
-    sprintMultiplier: 2.5,
+  prediction: {
+    /** Position difference (m) beyond which a prediction is corrected. */
+    positionTolerance: 0.001,
+    /** Velocity difference (m/s) beyond which a prediction is corrected. */
+    velocityTolerance: 0.01,
+    /** Stamina difference beyond which a prediction is corrected. */
+    staminaTolerance: 0.01,
+    /** Correction smoothing window, seconds (ARCHITECTURE §4.4: ~100 ms). */
+    correctionSmoothingSeconds: 0.1,
+    /** Corrections larger than this (m) snap rather than glide. */
+    snapDistance: 2,
   },
   stats: {
     /** How often the overlay text refreshes, in seconds. */
