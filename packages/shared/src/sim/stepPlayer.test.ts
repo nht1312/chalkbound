@@ -5,6 +5,7 @@ import { STAMINA } from '../config/stamina';
 import { FIXED_DT } from '../config/simulation';
 import { vec3 } from '../math/vec';
 import { createStaticWorld, type PhysicsWorld } from '../physics/staticWorld';
+import { decodeServerMessage, encodeServerMessage } from '../protocol/codec';
 import { Button, type InputCommand } from '../protocol/messages';
 import type { StaticBox } from '../world/greyboxRoom';
 import {
@@ -314,6 +315,16 @@ describe('stepPlayer: reproducibility', () => {
     for (const c of commands) s = stepPlayer(s, c, body, world, FIXED_DT);
     return s;
   }
+
+  it('returns float32-exact state, so a snapshot carries it bit-for-bit', () => {
+    // Client replay starts from the decoded snapshot; it must equal what the authority holds.
+    const p = setup();
+    const s = replay(p.world, p.body, p.state, script.slice(0, 150));
+    const decoded = decodeServerMessage(
+      encodeServerMessage({ type: 'snapshot', serverTick: 1, lastProcessedSeq: 1, player: s }),
+    );
+    expect(decoded.type === 'snapshot' && decoded.player).toEqual(s);
+  });
 
   it('produces identical results in two independent worlds', () => {
     const a = setup();

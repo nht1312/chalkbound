@@ -27,6 +27,8 @@ export class NetClient {
   lastAckedSeq = 0;
   /** The local player's state as of `lastAckedSeq`, from the newest snapshot. */
   authoritativePlayer: PlayerState | undefined;
+  /** Increments whenever `authoritativePlayer` is replaced; poll it to detect new snapshots. */
+  snapshotCount = 0;
   protocolErrors = 0;
 
   private unacked: InputCommand[] = [];
@@ -95,6 +97,7 @@ export class NetClient {
         if (message.lastProcessedSeq >= this.lastAckedSeq) {
           this.lastAckedSeq = message.lastProcessedSeq;
           this.authoritativePlayer = message.player;
+          this.snapshotCount++;
           this.unacked = this.unacked.filter((c) => c.seq > this.lastAckedSeq);
         }
         break;

@@ -7,6 +7,7 @@ import {
   encodeClientMessage,
   encodeServerMessage,
   ProtocolError,
+  quantizeInputCommand,
 } from './codec';
 import type { PlayerState } from '../sim/stepPlayer';
 import { Button, type InputCommand } from './messages';
@@ -45,6 +46,16 @@ describe('client messages', () => {
       decodeClientMessage(once) as Parameters<typeof encodeClientMessage>[0],
     );
     expect(twice).toEqual(once);
+  });
+
+  it('quantizeInputCommand yields exactly what the receiver decodes', () => {
+    const raw: InputCommand = { ...command, yaw: 0.123456789, pitch: -0.98765, moveX: 0.333 };
+    const decoded = decodeClientMessage(
+      encodeClientMessage({ type: 'inputBatch', commands: [raw] }),
+    );
+    if (decoded.type !== 'inputBatch') throw new Error('wrong type');
+    expect(decoded.commands[0]).toEqual(quantizeInputCommand(raw));
+    expect(quantizeInputCommand(raw).yaw).not.toBe(raw.yaw);
   });
 
   it('round-trips a ping exactly', () => {

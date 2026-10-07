@@ -180,15 +180,22 @@ export function stepPlayer(
   }
   if (grounded && vy < 0) vy = 0;
 
+  const stamina = updateStamina(state.stamina, { sprinting, jumped }, dt);
+  // Round to float32, the snapshot's precision, so the authority's state and
+  // the client's replay base are bit-identical (see ARCHITECTURE §10 inv. 10).
   return {
-    position: vec3(center.x + moved.x, center.y + moved.y - height / 2, center.z + moved.z),
-    velocity: vec3(vx, vy, vz),
+    position: f32Vec(center.x + moved.x, center.y + moved.y - height / 2, center.z + moved.z),
+    velocity: f32Vec(vx, vy, vz),
     grounded,
     crouching,
     jumpHeld: held(Button.Jump),
     sprinting,
-    stamina: updateStamina(state.stamina, { sprinting, jumped }, dt),
+    stamina: { value: Math.fround(stamina.value), regenDelay: Math.fround(stamina.regenDelay) },
   };
+}
+
+function f32Vec(x: number, y: number, z: number): Vec3 {
+  return vec3(Math.fround(x), Math.fround(y), Math.fround(z));
 }
 
 /** Distance from the capsule's current pose straight down to ground, within snap range. */

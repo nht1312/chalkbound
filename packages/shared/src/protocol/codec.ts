@@ -32,6 +32,20 @@ export class ProtocolError extends Error {
   override name = 'ProtocolError';
 }
 
+/**
+ * The command exactly as the receiver will decode it. The client predicts with
+ * this, not the raw command, so prediction and authority step identical inputs.
+ */
+export function quantizeInputCommand(command: InputCommand): InputCommand {
+  return {
+    ...command,
+    moveX: dequantizeUnit(quantizeUnit(command.moveX)),
+    moveZ: dequantizeUnit(quantizeUnit(command.moveZ)),
+    yaw: dequantizeAngle(quantizeAngle(command.yaw)),
+    pitch: dequantizeAngle(quantizeAngle(command.pitch)),
+  };
+}
+
 export function encodeClientMessage(message: ClientMessage): Uint8Array {
   switch (message.type) {
     case 'inputBatch': {

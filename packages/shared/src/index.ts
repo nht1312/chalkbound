@@ -27,6 +27,7 @@ export {
   encodeServerMessage,
   decodeServerMessage,
   ProtocolError,
+  quantizeInputCommand,
 } from './protocol/codec';
 
 export type { Transport, TransportStats, Reliability } from './net/transport';
