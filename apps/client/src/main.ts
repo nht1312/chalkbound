@@ -8,6 +8,7 @@ import {
   SIMULATION_TIMESTEP,
 } from '@chalkbound/shared';
 import { CLIENT_CONFIG } from './config/client';
+import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
 import { FppCamera } from './camera/FppCamera';
 import { createDebugReadout } from './debug/debugReadout';
 import { createStatsOverlay } from './debug/statsOverlay';
@@ -34,7 +35,9 @@ function bootstrap(): void {
 
   const level = createGreyboxRoom();
   const { camera: camCfg } = CLIENT_CONFIG;
-  const camera = new PerspectiveCamera(camCfg.fovDegrees, 1, camCfg.near, camCfg.far);
+  const feelCfg = CLIENT_CONFIG.feel;
+  const camera = new PerspectiveCamera(feelCfg.baseFov, 1, camCfg.near, camCfg.far);
+  let feel = initialCameraFeel(feelCfg);
   const { renderer } = createRenderer(canvas, camera, CLIENT_CONFIG.render);
   const scene = createTestScene(level);
 
@@ -118,12 +121,29 @@ function bootstrap(): void {
     net.update();
 
     const feet = predictor?.renderPosition(alpha) ?? level.spawn;
-    const crouching = predictor?.state.crouching ?? false;
-    camera.position.set(
-      feet.x,
-      feet.y + (crouching ? camCfg.crouchEyeHeight : camCfg.eyeHeight),
-      feet.z,
+    const player = predictor?.state;
+    feel = updateCameraFeel(
+      feel,
+      {
+        horizontalSpeed: player ? Math.hypot(player.velocity.x, player.velocity.z) : 0,
+        grounded: player?.grounded ?? true,
+        crouching: player?.crouching ?? false,
+        sprinting: player?.sprinting ?? false,
+      },
+      frameDelta,
+      feelCfg,
     );
+    const bob = bobOffset(feel, feelCfg);
+    // Sway along the camera's right axis (yaw only).
+    camera.position.set(
+      feet.x + Math.cos(look.yaw) * bob.x,
+      feet.y + feel.eyeHeight + bob.y,
+      feet.z - Math.sin(look.yaw) * bob.x,
+    );
+    if (camera.fov !== feel.fov) {
+      camera.fov = feel.fov;
+      camera.updateProjectionMatrix();
+    }
     predictor?.decayVisualOffset(frameDelta);
     look.applyTo(camera);
     renderer.render(scene, camera);

@@ -1,17 +1,31 @@
 /** Client-only tuning values. Gameplay rules belong in @chalkbound/shared. */
 export const CLIENT_CONFIG = {
   camera: {
-    fovDegrees: 75,
     near: 0.05,
     far: 200,
-    /** Standing eye height above the feet, in metres. */
-    eyeHeight: 1.65,
-    /** Crouching eye height above the feet (snaps for now; Phase 1 T5 lerps it). */
-    crouchEyeHeight: 1.05,
     /** Radians of rotation per pixel of mouse movement. */
     mouseSensitivity: 0.0022,
     /** Pitch clamp in radians (just under 90° to avoid gimbal flip). */
     pitchLimit: (89 * Math.PI) / 180,
+  },
+  /** Cosmetic camera motion (ARCHITECTURE §4.3). */
+  feel: {
+    /** Eye height above the feet, metres. Capsule is 1.8 m standing, 1.2 m crouched. */
+    standingEyeHeight: 1.65,
+    crouchingEyeHeight: 1.05,
+    eyeHeightSmoothing: 0.08,
+    baseFov: 75,
+    sprintFovBoost: 8,
+    fovSmoothing: 0.15,
+    bob: {
+      strideLength: 1.4,
+      amplitudeY: 0.035,
+      amplitudeX: 0.02,
+      blendSmoothing: 0.1,
+      minSpeed: 0.3,
+      /** Full amplitude from walk speed upwards. */
+      referenceSpeed: 2.8,
+    },
   },
   render: {
     maxPixelRatio: 2,
