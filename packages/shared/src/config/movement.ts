@@ -14,8 +14,14 @@ export const MOVEMENT = {
   groundAcceleration: 40,
   /** Horizontal acceleration while airborne (air control), m/s². */
   airAcceleration: 6,
-  /** Jump apex height above the take-off point, m [PLACEHOLDER] */
-  jumpHeight: 1.0,
+  /**
+   * Gravity on the player, m/s². About twice real gravity, as in most
+   * shooters: 9.81 made jumps floaty (0.9 s airborne for a 1 m jump).
+   * World physics keeps PHYSICS.gravity [PLACEHOLDER]
+   */
+  gravity: 20,
+  /** Jump apex height above the take-off point, m; clears 0.75 m desks [PLACEHOLDER] */
+  jumpHeight: 0.9,
 
   capsule: {
     radius: 0.3,

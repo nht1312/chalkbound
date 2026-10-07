@@ -191,6 +191,37 @@ describe('stepPlayer: jumping', () => {
     expect(p.state.grounded).toBe(true);
   });
 
+  it('stays airborne for the time the player gravity implies, not world gravity', () => {
+    // Snappy, non-floaty jumps: a parabola under MOVEMENT.gravity.
+    const p = setup();
+    p.run({}, 10);
+    p.run({ buttons: Button.Jump }, 1);
+    let airTicks = 1;
+    while (!p.run({}, 1).grounded && airTicks < TICKS_PER_SECOND * 3) airTicks++;
+    const expected = 2 * Math.sqrt((2 * MOVEMENT.jumpHeight) / MOVEMENT.gravity);
+    expect(Math.abs(airTicks / TICKS_PER_SECOND - expected)).toBeLessThanOrEqual(
+      2 / TICKS_PER_SECOND,
+    );
+  });
+
+  it('can jump up onto a desk-height (0.75 m) box', () => {
+    const desk: StaticBox = {
+      id: 'desk',
+      kind: 'desk',
+      center: vec3(0, 0.375, -3),
+      halfExtents: vec3(1, 0.375, 1), // front face at z = -2, top at y = 0.75
+    };
+    const p = setup([openFloor, desk]);
+    p.run({}, 10);
+    while (p.state.position.z > -1.2) p.run({ moveZ: 1 }, 1);
+    p.run({ moveZ: 1, buttons: Button.Jump }, 1);
+    const s = p.run({ moveZ: 1 }, TICKS_PER_SECOND);
+    expect(s.grounded).toBe(true);
+    expect(s.position.y).toBeGreaterThan(0.75);
+    expect(s.position.y).toBeLessThan(0.75 + FLOOR_EPSILON);
+    expect(s.position.z).toBeLessThan(-2);
+  });
+
   it('is edge-triggered: holding jump does not bounce again after landing', () => {
     const p = setup();
     p.run({}, 10);

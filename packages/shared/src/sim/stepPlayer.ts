@@ -1,6 +1,5 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { MOVEMENT } from '../config/movement';
-import { PHYSICS } from '../config/physics';
 import { vec3, type Vec3 } from '../math/vec';
 import { PLAYER_GROUPS, PLAYER_MOVEMENT_QUERY } from '../physics/collisionGroups';
 import type { PhysicsWorld, Rapier } from '../physics/staticWorld';
@@ -32,7 +31,7 @@ export interface PlayerBody {
 }
 
 const { capsule, controller: kcc } = MOVEMENT;
-const GRAVITY = -PHYSICS.gravity.y;
+const GRAVITY = MOVEMENT.gravity;
 const JUMP_VELOCITY = Math.sqrt(2 * GRAVITY * MOVEMENT.jumpHeight);
 const DEG_TO_RAD = Math.PI / 180;
 const IDENTITY_ROTATION = { x: 0, y: 0, z: 0, w: 1 };
