@@ -3,6 +3,7 @@ export { NETWORK } from './config/network';
 export { PHYSICS } from './config/physics';
 export { MOVEMENT } from './config/movement';
 export { STAMINA } from './config/stamina';
+export { ECONOMY } from './config/economy';
 
 export {
   advanceFixedTimestep,
@@ -56,6 +57,7 @@ export {
   type StaminaState,
   type StaminaUse,
 } from './sim/stamina';
+export { addChalk } from './sim/chalk';
 
 export {
   createGreyboxRoom,

@@ -25,7 +25,7 @@ validates it and decides the outcome.
 
 ## Tasks
 
-- [ ] **T1 — Economy config and chalk meter rules (shared).**
+- [x] **T1 — Economy config and chalk meter rules (shared).**
   `shared/config/economy.ts` with the RD-02 values. A pure function to add
   chalk that clamps at the max and reports how much was actually taken.
   *Accept:* tests for adding within range, clamping at max, a full meter taking
