@@ -4,6 +4,7 @@ export { PHYSICS } from './config/physics';
 export { MOVEMENT } from './config/movement';
 export { STAMINA } from './config/stamina';
 export { ECONOMY } from './config/economy';
+export { INVENTORY } from './config/inventory';
 
 export {
   advanceFixedTimestep,
@@ -58,6 +59,15 @@ export {
   type StaminaUse,
 } from './sim/stamina';
 export { addChalk } from './sim/chalk';
+export {
+  addItem,
+  createInventory,
+  removeItem,
+  type Inventory,
+  type ItemDef,
+  type ItemId,
+  type ItemStack,
+} from './sim/inventory';
 
 export {
   createGreyboxRoom,

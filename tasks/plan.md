@@ -31,7 +31,7 @@ validates it and decides the outcome.
   *Accept:* tests for adding within range, clamping at max, a full meter taking
   nothing, and rejecting negative or non-integer amounts.
 
-- [ ] **T2 — Inventory model (shared, model only).**
+- [x] **T2 — Inventory model (shared, model only).**
   Six slots and per-item stack limits, with pure add and remove functions:
   - add fills existing stacks first, then empty slots, and reports leftovers;
   - remove takes from a slot.
