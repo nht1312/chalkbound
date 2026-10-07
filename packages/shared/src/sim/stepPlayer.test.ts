@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { MOVEMENT } from '../config/movement';
+import { STAMINA } from '../config/stamina';
 import { FIXED_DT } from '../config/simulation';
 import { vec3 } from '../math/vec';
 import { createStaticWorld, type PhysicsWorld } from '../physics/staticWorld';
@@ -214,6 +215,61 @@ describe('stepPlayer: jumping', () => {
     expect(s.grounded).toBe(false);
     expect(horizontalSpeed(s)).toBeLessThan(MOVEMENT.walkSpeed * 0.75);
     expect(horizontalSpeed(s)).toBeGreaterThan(0);
+  });
+});
+
+describe('stepPlayer: stamina', () => {
+  const sprintForward = { moveZ: 1, buttons: Button.Sprint };
+  /** Ticks of sprinting that drain a full bar. */
+  const ticksToEmpty = Math.ceil((STAMINA.max / STAMINA.sprintDrainPerSecond) * TICKS_PER_SECOND);
+
+  it('starts with full stamina', () => {
+    expect(setup().state.stamina.value).toBe(STAMINA.max);
+  });
+
+  it('drains while sprinting and drops to walk speed when empty', () => {
+    const p = setup();
+    const s = p.run(sprintForward, ticksToEmpty + TICKS_PER_SECOND / 2);
+    expect(s.stamina.value).toBe(0);
+    expect(s.sprinting).toBe(false);
+    expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.walkSpeed, 3);
+  });
+
+  it('does not drain when walking', () => {
+    expect(setup().run({ moveZ: 1 }, TICKS_PER_SECOND).stamina.value).toBe(STAMINA.max);
+  });
+
+  it('cannot restart a sprint until stamina reaches the start minimum', () => {
+    const p = setup();
+    p.run(sprintForward, ticksToEmpty + 1);
+    // Release sprint, wait out the delay plus a little regen (below the start minimum).
+    const partialRegenTicks = Math.floor(
+      (STAMINA.regenDelaySeconds + (STAMINA.sprintStartMinimum / STAMINA.regenPerSecond) * 0.5) *
+        TICKS_PER_SECOND,
+    );
+    p.run({ moveZ: 1 }, partialRegenTicks);
+    expect(p.state.stamina.value).toBeGreaterThan(0);
+    expect(p.run(sprintForward, 1).sprinting).toBe(false);
+
+    // After enough regen, sprinting is allowed again.
+    p.run({ moveZ: 1 }, TICKS_PER_SECOND * 2);
+    expect(p.run(sprintForward, 1).sprinting).toBe(true);
+  });
+
+  it('spends the jump cost on a jump', () => {
+    const p = setup();
+    p.run({}, 10);
+    expect(p.run({ buttons: Button.Jump }, 1).stamina.value).toBe(STAMINA.max - STAMINA.jumpCost);
+  });
+
+  it('cannot jump without enough stamina', () => {
+    const p = setup();
+    p.run(sprintForward, ticksToEmpty + 1);
+    const before = p.run({}, 1);
+    const after = p.run({ buttons: Button.Jump }, 1);
+    expect(after.grounded).toBe(true);
+    expect(after.velocity.y).toBe(0);
+    expect(after.stamina.value).toBeGreaterThanOrEqual(before.stamina.value);
   });
 });
 

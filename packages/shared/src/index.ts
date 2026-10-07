@@ -2,6 +2,7 @@ export { SIMULATION, FIXED_DT, TICKS_PER_SNAPSHOT } from './config/simulation';
 export { NETWORK } from './config/network';
 export { PHYSICS } from './config/physics';
 export { MOVEMENT } from './config/movement';
+export { STAMINA } from './config/stamina';
 
 export {
   advanceFixedTimestep,
@@ -46,6 +47,14 @@ export {
   type PlayerBody,
   type PlayerState,
 } from './sim/stepPlayer';
+export {
+  canJump,
+  canSprint,
+  FULL_STAMINA,
+  updateStamina,
+  type StaminaState,
+  type StaminaUse,
+} from './sim/stamina';
 
 export {
   createGreyboxRoom,

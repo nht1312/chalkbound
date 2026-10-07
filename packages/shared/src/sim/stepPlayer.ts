@@ -4,6 +4,7 @@ import { PHYSICS } from '../config/physics';
 import { vec3, type Vec3 } from '../math/vec';
 import type { PhysicsWorld, Rapier } from '../physics/staticWorld';
 import { Button, type InputCommand } from '../protocol/messages';
+import { canJump, canSprint, FULL_STAMINA, updateStamina, type StaminaState } from './stamina';
 
 /**
  * Everything that determines a player's next movement step. Plain data, so it
@@ -17,6 +18,8 @@ export interface PlayerState {
   readonly crouching: boolean;
   /** Jump was held last step; jumping is edge-triggered. */
   readonly jumpHeld: boolean;
+  readonly sprinting: boolean;
+  readonly stamina: StaminaState;
 }
 
 /** A player's Rapier objects. Holds no state: `stepPlayer` re-poses it every step. */
@@ -60,6 +63,8 @@ export function initialPlayerState(feet: Vec3): PlayerState {
     grounded: false,
     crouching: false,
     jumpHeld: false,
+    sprinting: false,
+    stamina: FULL_STAMINA,
   };
 }
 
@@ -119,7 +124,8 @@ export function stepPlayer(
     wishX /= wishLength;
     wishZ /= wishLength;
   }
-  const sprinting = held(Button.Sprint) && command.moveZ > 0 && !crouching;
+  const wantsSprint = held(Button.Sprint) && command.moveZ > 0 && !crouching;
+  const sprinting = wantsSprint && canSprint(state.stamina, state.sprinting);
   const speed = crouching
     ? MOVEMENT.crouchSpeed
     : sprinting
@@ -139,9 +145,9 @@ export function stepPlayer(
   // Rapier sink slowly into the floor. Airborne, integrate gravity using the
   // step's average velocity, which is exact for constant gravity, so the jump
   // apex matches `jumpHeight` independent of tick rate.
-  const jumpPressed = held(Button.Jump) && !state.jumpHeld;
-  const airborne = !state.grounded || jumpPressed;
-  const startVy = state.grounded ? (jumpPressed ? JUMP_VELOCITY : 0) : state.velocity.y;
+  const jumped = state.grounded && held(Button.Jump) && !state.jumpHeld && canJump(state.stamina);
+  const airborne = !state.grounded || jumped;
+  const startVy = jumped ? JUMP_VELOCITY : state.grounded ? 0 : state.velocity.y;
   let vy = airborne ? startVy - GRAVITY * dt : 0;
 
   // Grounded: close any gap to exactly the skin width, never past it.
@@ -177,6 +183,8 @@ export function stepPlayer(
     grounded,
     crouching,
     jumpHeld: held(Button.Jump),
+    sprinting,
+    stamina: updateStamina(state.stamina, { sprinting, jumped }, dt),
   };
 }
 

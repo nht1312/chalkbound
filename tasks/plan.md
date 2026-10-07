@@ -22,7 +22,7 @@ Phase 1 feel check.
   stand up under a low ceiling, and replays identical command sequences to
   identical positions, both on a second world and when rewound on the same body.
 
-- [ ] **T2 — Stamina (shared).**
+- [x] **T2 — Stamina (shared).**
   Drain on sprint (per second) and jump (per jump), regen 15/s after a 1 s
   delay (`SPEC.md` §17), sprint and jump gated on stamina.
   *Accept:* arithmetic tests for drain, delay, regen cap, and gating.
