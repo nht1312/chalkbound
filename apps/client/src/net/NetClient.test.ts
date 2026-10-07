@@ -3,6 +3,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createGreyboxRoom,
   createLoopbackPair,
+  encodeServerMessage,
+  initialPlayerState,
   FIXED_DT,
   MatchSimulation,
   SimulationHost,
@@ -80,5 +82,52 @@ describe('NetClient over loopback', () => {
     // Each batch repeats the newest unacked commands, so a lost packet's commands
     // arrive with the next one and acknowledgement keeps pace with sending.
     expect(net.lastAckedSeq).toBeGreaterThan(280);
+  });
+});
+
+describe('NetClient chalk and interaction', () => {
+  it('sends interact intents and exposes the authoritative chalk and boxes', () => {
+    const scheduler = new ManualScheduler();
+    const [clientEnd, serverEnd] = createLoopbackPair({ scheduler });
+    const level = createGreyboxRoom();
+    const sim = new MatchSimulation(RAPIER, {
+      ...level,
+      chalkBoxes: [{ id: 5, position: { ...level.spawn, y: 1.2 } }],
+    });
+    const host = new SimulationHost(sim);
+    host.connect(serverEnd);
+    const net = new NetClient(clientEnd, scheduler);
+    expect(net.chalk).toBeUndefined();
+
+    net.sendInteract(5);
+    for (let i = 0; i < 4; i++) {
+      scheduler.advance(TICK_MS);
+      host.step();
+    }
+    scheduler.advance(0);
+    expect(net.chalk).toBe(25);
+    expect(net.chalkBoxes.get(5)).toBe(0);
+  });
+
+  it('ignores a snapshot older than one already applied', () => {
+    const scheduler = new ManualScheduler();
+    const [clientEnd, serverEnd] = createLoopbackPair({ scheduler });
+    const net = new NetClient(clientEnd, scheduler);
+    const player = initialPlayerState({ x: 0, y: 0, z: 0 });
+    const snapshot = (serverTick: number, chalk: number) =>
+      encodeServerMessage({
+        type: 'snapshot',
+        serverTick,
+        lastProcessedSeq: 0, // idle player: every snapshot carries the same seq
+        player,
+        chalk,
+        chalkBoxes: [],
+      });
+
+    serverEnd.send(snapshot(20, 50), 'unreliable');
+    serverEnd.send(snapshot(10, 25), 'unreliable'); // late, reordered
+    scheduler.advance(0);
+    expect(net.chalk).toBe(50);
+    expect(net.serverTick).toBe(20);
   });
 });

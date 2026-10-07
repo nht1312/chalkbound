@@ -97,6 +97,37 @@ describe('SimulationHost over LoopbackTransport', () => {
     expect(last.player.grounded).toBe(true);
   });
 
+  it('applies an interact intent and reports the new chalk and box state', () => {
+    const scheduler = new ManualScheduler();
+    const [client, server] = createLoopbackPair({ scheduler });
+    const nearBox: LevelData = {
+      ...level,
+      chalkBoxes: [
+        { id: 7, position: vec3(0, 1.2, -1) },
+        { id: 8, position: vec3(0, 1.2, -9) },
+      ],
+    };
+    const host = new SimulationHost(new MatchSimulation(RAPIER, nearBox));
+    host.connect(server);
+    const inbox: ServerMessage[] = [];
+    client.onMessage((data) => inbox.push(decodeServerMessage(data)));
+
+    client.send(encodeClientMessage({ type: 'interact', targetId: 7 }), 'reliable');
+    client.send(encodeClientMessage({ type: 'interact', targetId: 8 }), 'reliable'); // too far
+    scheduler.advance(0);
+    for (let i = 0; i < TICKS_PER_SNAPSHOT; i++) host.step();
+    scheduler.advance(0);
+
+    const last = inbox.filter((m) => m.type === 'snapshot').at(-1);
+    expect(last).toMatchObject({
+      chalk: 25,
+      chalkBoxes: [
+        { id: 7, remaining: 0 },
+        { id: 8, remaining: 25 },
+      ],
+    });
+  });
+
   it('drops malformed messages without throwing', () => {
     const { client, host, scheduler } = setup(0);
     client.send(new Uint8Array([255, 1, 2]), 'reliable');

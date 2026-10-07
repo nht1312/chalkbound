@@ -38,7 +38,9 @@ export interface InputCommand {
 
 export type ClientMessage =
   | { readonly type: 'inputBatch'; readonly commands: readonly InputCommand[] }
-  | { readonly type: 'ping'; readonly id: number; readonly clientTime: number };
+  | { readonly type: 'ping'; readonly id: number; readonly clientTime: number }
+  /** "I want to use this." The authority decides whether it is in reach and what happens. */
+  | { readonly type: 'interact'; readonly targetId: number };
 
 export type ServerMessage =
   | {
@@ -54,4 +56,13 @@ export type ServerMessage =
       readonly lastProcessedSeq: number;
       /** The receiving player's authoritative state after `lastProcessedSeq`. */
       readonly player: PlayerState;
+      /** The receiving player's authoritative chalk meter. */
+      readonly chalk: number;
+      /** Every chalk box and what it still holds. */
+      readonly chalkBoxes: readonly ChalkBoxState[];
     };
+
+export interface ChalkBoxState {
+  readonly id: number;
+  readonly remaining: number;
+}

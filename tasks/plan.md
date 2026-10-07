@@ -49,7 +49,7 @@ validates it and decides the outcome.
   - unknown boxes and players are ignored;
   - no other code path changes chalk.
 
-- [ ] **T4 — Protocol: `InteractIntent` up, chalk and box state down.**
+- [x] **T4 — Protocol: `InteractIntent` up, chalk and box state down.**
   A reliable `interact { targetId }` message goes upstream. The snapshot carries
   the receiving player's chalk and each box's remaining amount. The host routes
   interact messages, and `NetClient` exposes the authoritative values.

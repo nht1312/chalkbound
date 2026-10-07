@@ -21,6 +21,7 @@ export * from './math/quantize';
 export {
   Button,
   type InputCommand,
+  type ChalkBoxState,
   type ClientMessage,
   type ServerMessage,
 } from './protocol/messages';

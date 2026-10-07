@@ -1,7 +1,7 @@
 import { NETWORK } from '../config/network';
 import { dequantizeAngle, dequantizeUnit, quantizeAngle, quantizeUnit } from '../math/quantize';
 import type { PlayerState } from '../sim/stepPlayer';
-import type { ClientMessage, InputCommand, ServerMessage } from './messages';
+import type { ChalkBoxState, ClientMessage, InputCommand, ServerMessage } from './messages';
 
 /** First byte of every message. Values are part of the wire format; never reuse one. */
 const Tag = {
@@ -9,14 +9,19 @@ const Tag = {
   Ping: 2,
   Pong: 3,
   Snapshot: 4,
+  Interact: 5,
 } as const;
 
 /** u32 seq, u32 tick, i8 moveX, i8 moveZ, u16 yaw, u16 pitch, u16 buttons. */
 const INPUT_COMMAND_BYTES = 16;
 /** f32×3 position, f32×3 velocity, u8 flags, f32 stamina, f32 regen delay. */
 const PLAYER_STATE_BYTES = 33;
-/** u8 tag, u32 serverTick, u32 lastProcessedSeq, player state. */
-const SNAPSHOT_BYTES = 9 + PLAYER_STATE_BYTES;
+/** u8 tag, u32 serverTick, u32 lastProcessedSeq, player state, u8 chalk, u8 box count. */
+const SNAPSHOT_FIXED_BYTES = 9 + PLAYER_STATE_BYTES + 2;
+/** u16 id, u8 remaining. */
+const CHALK_BOX_BYTES = 3;
+const U8_MAX = 0xff;
+const U16_MAX = 0xffff;
 
 /** Bits of the player-state flags byte. */
 const PlayerFlag = {
@@ -69,6 +74,9 @@ export function encodeClientMessage(message: ClientMessage): Uint8Array {
     }
     case 'ping':
       return new Writer(11).u8(Tag.Ping).u16(message.id).f64(message.clientTime).bytes;
+    case 'interact':
+      return new Writer(3).u8(Tag.Interact).u16(checkedInt(message.targetId, U16_MAX, 'targetId'))
+        .bytes;
   }
 }
 
@@ -101,6 +109,11 @@ export function decodeClientMessage(data: Uint8Array): ClientMessage {
       reader.end();
       return message;
     }
+    case Tag.Interact: {
+      const message = { type: 'interact', targetId: reader.u16() } as const;
+      reader.end();
+      return message;
+    }
     default:
       throw new ProtocolError(`Unknown client message tag ${tag}`);
   }
@@ -115,11 +128,19 @@ export function encodeServerMessage(message: ServerMessage): Uint8Array {
         .f64(message.clientTime)
         .u32(message.serverTick).bytes;
     case 'snapshot': {
-      const writer = new Writer(SNAPSHOT_BYTES)
+      const boxes = message.chalkBoxes;
+      checkedInt(boxes.length, U8_MAX, 'chalk box count');
+      const writer = new Writer(SNAPSHOT_FIXED_BYTES + boxes.length * CHALK_BOX_BYTES)
         .u8(Tag.Snapshot)
         .u32(message.serverTick)
         .u32(message.lastProcessedSeq);
       writePlayerState(writer, message.player);
+      writer.u8(checkedInt(message.chalk, U8_MAX, 'chalk')).u8(boxes.length);
+      for (const box of boxes) {
+        writer
+          .u16(checkedInt(box.id, U16_MAX, 'chalk box id'))
+          .u8(checkedInt(box.remaining, U8_MAX, 'chalk box remaining'));
+      }
       return writer.bytes;
     }
   }
@@ -145,6 +166,8 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
         serverTick: reader.u32(),
         lastProcessedSeq: reader.u32(),
         player: readPlayerState(reader),
+        chalk: reader.u8(),
+        chalkBoxes: readChalkBoxes(reader),
       } as const;
       reader.end();
       return message;
@@ -152,6 +175,21 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
     default:
       throw new ProtocolError(`Unknown server message tag ${tag}`);
   }
+}
+
+function readChalkBoxes(reader: Reader): ChalkBoxState[] {
+  const count = reader.u8();
+  const boxes: ChalkBoxState[] = [];
+  for (let i = 0; i < count; i++) boxes.push({ id: reader.u16(), remaining: reader.u8() });
+  return boxes;
+}
+
+/** Throws unless `value` is an integer in [0, max], i.e. fits its wire field. */
+function checkedInt(value: number, max: number, field: string): number {
+  if (!Number.isInteger(value) || value < 0 || value > max) {
+    throw new ProtocolError(`${field} ${value} does not fit the wire format (0..${max})`);
+  }
+  return value;
 }
 
 /**

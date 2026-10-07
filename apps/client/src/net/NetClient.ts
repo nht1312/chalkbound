@@ -29,6 +29,12 @@ export class NetClient {
   authoritativePlayer: PlayerState | undefined;
   /** Increments whenever `authoritativePlayer` is replaced; poll it to detect new snapshots. */
   snapshotCount = 0;
+  /** The local player's authoritative chalk meter; undefined until the first snapshot. */
+  chalk: number | undefined;
+  /** Authoritative remaining chalk per box id. */
+  chalkBoxes: ReadonlyMap<number, number> = new Map();
+
+  private newestSnapshotTick = -1;
   protocolErrors = 0;
 
   private unacked: InputCommand[] = [];
@@ -62,6 +68,11 @@ export class NetClient {
     this.transport.send(encodeClientMessage({ type: 'inputBatch', commands: batch }), 'unreliable');
   }
 
+  /** Asks the authority to use a world object; the result arrives in a later snapshot. */
+  sendInteract(targetId: number): void {
+    this.transport.send(encodeClientMessage({ type: 'interact', targetId }), 'reliable');
+  }
+
   /** Call once per frame; sends a ping on the configured cadence. */
   update(): void {
     const now = this.scheduler.now();
@@ -93,13 +104,16 @@ export class NetClient {
         break;
       }
       case 'snapshot':
-        // Unreliable snapshots may arrive out of order: keep only the newest.
-        if (message.lastProcessedSeq >= this.lastAckedSeq) {
-          this.lastAckedSeq = message.lastProcessedSeq;
-          this.authoritativePlayer = message.player;
-          this.snapshotCount++;
-          this.unacked = this.unacked.filter((c) => c.seq > this.lastAckedSeq);
-        }
+        // Unreliable snapshots may arrive out of order. Order by server tick, not
+        // by ack seq: an idle player's snapshots all share one seq.
+        if (message.serverTick < this.newestSnapshotTick) break;
+        this.newestSnapshotTick = message.serverTick;
+        this.lastAckedSeq = message.lastProcessedSeq;
+        this.authoritativePlayer = message.player;
+        this.chalk = message.chalk;
+        this.chalkBoxes = new Map(message.chalkBoxes.map((b) => [b.id, b.remaining]));
+        this.snapshotCount++;
+        this.unacked = this.unacked.filter((c) => c.seq > this.lastAckedSeq);
         break;
     }
   }

@@ -58,6 +58,13 @@ describe('client messages', () => {
     expect(quantizeInputCommand(raw).yaw).not.toBe(raw.yaw);
   });
 
+  it('round-trips an interact intent exactly', () => {
+    const interact = { type: 'interact', targetId: 65535 } as const;
+    const encoded = encodeClientMessage(interact);
+    expect(encoded.byteLength).toBe(3);
+    expect(decodeClientMessage(encoded)).toEqual(interact);
+  });
+
   it('round-trips a ping exactly', () => {
     const ping = { type: 'ping', id: 65535, clientTime: 12345.678 } as const;
     expect(decodeClientMessage(encodeClientMessage(ping))).toEqual(ping);
@@ -89,9 +96,16 @@ describe('server messages', () => {
   };
 
   it('round-trips a snapshot with the player state at float32 precision', () => {
-    const snapshot = { type: 'snapshot', serverTick: 3600, lastProcessedSeq: 42, player } as const;
+    const snapshot = {
+      type: 'snapshot',
+      serverTick: 3600,
+      lastProcessedSeq: 42,
+      player,
+      chalk: 0,
+      chalkBoxes: [],
+    } as const;
     const encoded = encodeServerMessage(snapshot);
-    expect(encoded.byteLength).toBe(42);
+    expect(encoded.byteLength).toBe(44);
 
     const decoded = decodeServerMessage(encoded);
     if (decoded.type !== 'snapshot') throw new Error('wrong type');
@@ -109,6 +123,57 @@ describe('server messages', () => {
     });
   });
 
+  it('round-trips chalk and every chalk box', () => {
+    const snapshot = {
+      type: 'snapshot',
+      serverTick: 9,
+      lastProcessedSeq: 8,
+      player,
+      chalk: 75,
+      chalkBoxes: [
+        { id: 1, remaining: 0 },
+        { id: 2, remaining: 25 },
+        { id: 65535, remaining: 255 },
+      ],
+    } as const;
+    const encoded = encodeServerMessage(snapshot);
+    expect(encoded.byteLength).toBe(44 + 3 * 3);
+    const decoded = decodeServerMessage(encoded);
+    expect(decoded).toMatchObject({ chalk: 75, chalkBoxes: snapshot.chalkBoxes });
+  });
+
+  it('refuses to encode chalk values the wire cannot carry', () => {
+    const base = { type: 'snapshot', serverTick: 1, lastProcessedSeq: 1, player } as const;
+    for (const bad of [
+      { chalk: 256, chalkBoxes: [] },
+      { chalk: -1, chalkBoxes: [] },
+      { chalk: 1.5, chalkBoxes: [] },
+      { chalk: 0, chalkBoxes: [{ id: 1, remaining: 300 }] },
+      { chalk: 0, chalkBoxes: [{ id: 70000, remaining: 1 }] },
+      {
+        chalk: 0,
+        chalkBoxes: Array.from({ length: 256 }, (_, i) => ({ id: i + 1, remaining: 1 })),
+      },
+    ]) {
+      expect(() => encodeServerMessage({ ...base, ...bad })).toThrow(ProtocolError);
+    }
+  });
+
+  it('rejects a snapshot whose box count does not match its length', () => {
+    const encoded = encodeServerMessage({
+      type: 'snapshot',
+      serverTick: 1,
+      lastProcessedSeq: 1,
+      player,
+      chalk: 0,
+      chalkBoxes: [{ id: 1, remaining: 25 }],
+    });
+    expect(() => decodeServerMessage(encoded.slice(0, -1))).toThrow(ProtocolError);
+    const inflated = encoded.slice();
+    inflated[43] = 2; // claims two boxes, carries one
+    expect(() => decodeServerMessage(inflated)).toThrow(ProtocolError);
+  });
+
   it('round-trips every flag combination', () => {
     for (let bits = 0; bits < 16; bits++) {
       const flags = {
@@ -122,6 +187,8 @@ describe('server messages', () => {
         serverTick: 1,
         lastProcessedSeq: 1,
         player: { ...player, ...flags },
+        chalk: 0,
+        chalkBoxes: [],
       } as const;
       const decoded = decodeServerMessage(encodeServerMessage(snapshot));
       expect(decoded).toMatchObject({ player: flags });
@@ -138,6 +205,7 @@ describe('malformed input', () => {
     ['truncated', valid.slice(0, valid.length - 1)],
     ['trailing bytes', new Uint8Array([...valid, 0])],
     ['batch count 0', new Uint8Array([1, 0])],
+    ['truncated interact', new Uint8Array([5, 1])],
   ])('rejects %s', (_name, bytes) => {
     expect(() => decodeClientMessage(bytes)).toThrow(ProtocolError);
   });

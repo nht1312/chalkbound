@@ -47,6 +47,8 @@ export class SimulationHost {
         serverTick: this.sim.tick,
         lastProcessedSeq: this.sim.lastProcessedSeq(id),
         player,
+        chalk: this.sim.chalk(id) ?? 0,
+        chalkBoxes: this.sim.chalkBoxStates(),
       });
     }
   }
@@ -64,6 +66,10 @@ export class SimulationHost {
     switch (message.type) {
       case 'inputBatch':
         this.sim.submitInputs(id, message.commands);
+        break;
+      case 'interact':
+        // The outcome reaches the client through the next snapshot.
+        this.sim.interact(id, message.targetId);
         break;
       case 'ping':
         this.send(transport, {

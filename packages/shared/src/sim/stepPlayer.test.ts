@@ -352,7 +352,14 @@ describe('stepPlayer: reproducibility', () => {
     const p = setup();
     const s = replay(p.world, p.body, p.state, script.slice(0, 150));
     const decoded = decodeServerMessage(
-      encodeServerMessage({ type: 'snapshot', serverTick: 1, lastProcessedSeq: 1, player: s }),
+      encodeServerMessage({
+        type: 'snapshot',
+        serverTick: 1,
+        lastProcessedSeq: 1,
+        player: s,
+        chalk: 0,
+        chalkBoxes: [],
+      }),
     );
     expect(decoded.type === 'snapshot' && decoded.player).toEqual(s);
   });
