@@ -1,0 +1,277 @@
+import RAPIER from '@dimforge/rapier3d-compat';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { MOVEMENT } from '../config/movement';
+import { FIXED_DT } from '../config/simulation';
+import { vec3 } from '../math/vec';
+import { createStaticWorld, type PhysicsWorld } from '../physics/staticWorld';
+import { Button, type InputCommand } from '../protocol/messages';
+import type { StaticBox } from '../world/greyboxRoom';
+import {
+  createPlayerBody,
+  initialPlayerState,
+  stepPlayer,
+  type PlayerBody,
+  type PlayerState,
+} from './stepPlayer';
+
+beforeAll(async () => {
+  await RAPIER.init();
+});
+
+const TICKS_PER_SECOND = Math.round(1 / FIXED_DT);
+/** Tolerance for "resting on the floor": the controller keeps a skin gap. */
+const FLOOR_EPSILON = MOVEMENT.controller.skinWidth * 2;
+
+const openFloor: StaticBox = {
+  id: 'floor',
+  kind: 'floor',
+  center: vec3(0, -0.5, 0),
+  halfExtents: vec3(50, 0.5, 50),
+};
+
+function setup(boxes: readonly StaticBox[] = [openFloor], feet = vec3(0, 0, 0)) {
+  const world = createStaticWorld(RAPIER, boxes);
+  const body = createPlayerBody(RAPIER, world);
+  let state = initialPlayerState(feet);
+  const run = (command: Partial<InputCommand>, ticks: number): PlayerState => {
+    for (let i = 0; i < ticks; i++) state = stepPlayer(state, cmd(command), body, world, FIXED_DT);
+    return state;
+  };
+  return {
+    world,
+    body,
+    run,
+    get state() {
+      return state;
+    },
+  };
+}
+
+function cmd(partial: Partial<InputCommand>): InputCommand {
+  return { seq: 0, tick: 0, moveX: 0, moveZ: 0, yaw: 0, pitch: 0, buttons: 0, ...partial };
+}
+
+const horizontalSpeed = (s: PlayerState): number => Math.hypot(s.velocity.x, s.velocity.z);
+
+describe('stepPlayer: ground and gravity', () => {
+  it('falls onto the floor and becomes grounded', () => {
+    const p = setup([openFloor], vec3(0, 2, 0));
+    const s = p.run({}, TICKS_PER_SECOND * 2);
+    expect(s.grounded).toBe(true);
+    expect(s.position.y).toBeGreaterThanOrEqual(-1e-3);
+    expect(s.position.y).toBeLessThan(FLOOR_EPSILON);
+    expect(s.velocity.y).toBe(0);
+  });
+
+  it('is airborne while falling', () => {
+    const p = setup([openFloor], vec3(0, 5, 0));
+    const s = p.run({}, 10);
+    expect(s.grounded).toBe(false);
+    expect(s.velocity.y).toBeLessThan(0);
+  });
+});
+
+describe('stepPlayer: walking', () => {
+  it('walks forward (-Z at yaw 0) at walk speed', () => {
+    const p = setup();
+    const s = p.run({ moveZ: 1 }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.walkSpeed, 3);
+    expect(s.position.z).toBeLessThan(-MOVEMENT.walkSpeed * 0.8);
+    // Rapier's contact resolution adds sub-millimetre lateral noise per metre;
+    // 1 cm over ~2.8 m is visually straight.
+    expect(Math.abs(s.position.x)).toBeLessThan(0.01);
+    expect(s.grounded).toBe(true);
+  });
+
+  it('follows yaw: yaw -PI/2 walks toward +X', () => {
+    const p = setup();
+    const s = p.run({ moveZ: 1, yaw: -Math.PI / 2 }, TICKS_PER_SECOND);
+    expect(s.position.x).toBeGreaterThan(MOVEMENT.walkSpeed * 0.8);
+  });
+
+  it('normalises diagonal input so it is not faster', () => {
+    const p = setup();
+    const s = p.run({ moveZ: 1, moveX: 1 }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.walkSpeed, 3);
+  });
+
+  it('never exceeds the speed cap while accelerating', () => {
+    const p = setup();
+    for (let i = 0; i < TICKS_PER_SECOND; i++) {
+      expect(horizontalSpeed(p.run({ moveZ: 1 }, 1))).toBeLessThanOrEqual(
+        MOVEMENT.walkSpeed + 1e-6,
+      );
+    }
+  });
+
+  it('keeps full speed and floor height over a long curving walk on flat ground', () => {
+    // Regression: Rapier capsule-box contacts report occasional tilted normals and
+    // a grounded controller fed gravity sinks; neither may slow or sink the player.
+    const p = setup();
+    p.run({}, 10);
+    for (let i = 0; i < TICKS_PER_SECOND * 10; i++) {
+      const s = p.run({ moveX: 1, moveZ: 0.3, yaw: i * 0.01 }, 1);
+      if (i > TICKS_PER_SECOND) {
+        expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.walkSpeed, 3);
+        expect(s.position.y).toBeGreaterThan(0);
+        expect(s.position.y).toBeLessThan(FLOOR_EPSILON);
+      }
+    }
+  });
+
+  it('stops when input is released', () => {
+    const p = setup();
+    p.run({ moveZ: 1 }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(p.run({}, TICKS_PER_SECOND / 2))).toBe(0);
+  });
+});
+
+describe('stepPlayer: sprint and crouch', () => {
+  it('sprints forward at sprint speed', () => {
+    const p = setup();
+    const s = p.run({ moveZ: 1, buttons: Button.Sprint }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.sprintSpeed, 3);
+  });
+
+  it('does not sprint backwards or sideways', () => {
+    const p = setup();
+    const s = p.run({ moveX: 1, buttons: Button.Sprint }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.walkSpeed, 3);
+  });
+
+  it('crouches at crouch speed, overriding sprint', () => {
+    const p = setup();
+    const s = p.run({ moveZ: 1, buttons: Button.Crouch | Button.Sprint }, TICKS_PER_SECOND);
+    expect(s.crouching).toBe(true);
+    expect(horizontalSpeed(s)).toBeCloseTo(MOVEMENT.crouchSpeed, 3);
+  });
+
+  it('stands back up when crouch is released in open space', () => {
+    const p = setup();
+    p.run({ buttons: Button.Crouch }, 5);
+    expect(p.run({}, 1).crouching).toBe(false);
+  });
+
+  it('stays crouched under a low ceiling until there is room to stand', () => {
+    const ceilingBottom = (MOVEMENT.capsule.standingHeight + MOVEMENT.capsule.crouchingHeight) / 2;
+    const ceiling: StaticBox = {
+      id: 'ceiling',
+      kind: 'wall',
+      center: vec3(0, ceilingBottom + 0.5, 0),
+      halfExtents: vec3(1, 0.5, 1),
+    };
+    // Ceiling spans x in [-1, 1]. Start outside it, crouch, and crawl underneath (+X).
+    const p = setup([openFloor, ceiling], vec3(-3, 0, 0));
+    const crawlEast = { moveZ: 1, yaw: -Math.PI / 2, buttons: Button.Crouch };
+    while (p.state.position.x < 0) p.run(crawlEast, 1);
+
+    // Releasing crouch under the ceiling keeps the player crouched.
+    expect(p.run({}, 10).crouching).toBe(true);
+
+    // Crawl out the far side without holding crouch; the player stands once clear.
+    p.run({ moveZ: 1, yaw: -Math.PI / 2 }, TICKS_PER_SECOND * 2);
+    expect(p.state.position.x).toBeGreaterThan(1 + MOVEMENT.capsule.radius);
+    expect(p.state.crouching).toBe(false);
+  });
+});
+
+describe('stepPlayer: jumping', () => {
+  it('jumps to the configured apex height and lands', () => {
+    const p = setup();
+    const takeOffY = p.run({}, 10).position.y;
+    let apex = 0;
+    p.run({ buttons: Button.Jump }, 1);
+    for (let i = 0; i < TICKS_PER_SECOND * 2; i++) {
+      apex = Math.max(apex, p.run({}, 1).position.y - takeOffY);
+    }
+    expect(apex).toBeGreaterThan(MOVEMENT.jumpHeight * 0.95);
+    expect(apex).toBeLessThan(MOVEMENT.jumpHeight * 1.05);
+    expect(p.state.grounded).toBe(true);
+  });
+
+  it('is edge-triggered: holding jump does not bounce again after landing', () => {
+    const p = setup();
+    p.run({}, 10);
+    p.run({ buttons: Button.Jump }, TICKS_PER_SECOND * 2);
+    expect(p.state.grounded).toBe(true);
+    expect(p.run({ buttons: Button.Jump }, 10).position.y).toBeLessThan(FLOOR_EPSILON);
+  });
+
+  it('cannot jump while airborne', () => {
+    const p = setup([openFloor], vec3(0, 5, 0));
+    p.run({}, 5);
+    const before = p.state.velocity.y;
+    p.run({ buttons: 0 }, 1);
+    expect(p.run({ buttons: Button.Jump }, 1).velocity.y).toBeLessThan(before);
+  });
+
+  it('has limited air control', () => {
+    const p = setup();
+    p.run({}, 10);
+    p.run({ buttons: Button.Jump }, 1);
+    // Push sideways for a quarter second in the air.
+    const s = p.run({ moveX: 1 }, TICKS_PER_SECOND / 4);
+    expect(s.grounded).toBe(false);
+    expect(horizontalSpeed(s)).toBeLessThan(MOVEMENT.walkSpeed * 0.75);
+    expect(horizontalSpeed(s)).toBeGreaterThan(0);
+  });
+});
+
+describe('stepPlayer: collision', () => {
+  it('is stopped by a wall and slides along it', () => {
+    const wall: StaticBox = {
+      id: 'wall',
+      kind: 'wall',
+      center: vec3(0, 1.5, -2),
+      halfExtents: vec3(10, 1.5, 0.1),
+    };
+    const p = setup([openFloor, wall]);
+    // Walk into the wall at 45°: forward is blocked, the sideways component slides.
+    const s = p.run({ moveZ: 1, yaw: -Math.PI / 4 }, TICKS_PER_SECOND * 3);
+    expect(s.position.z).toBeGreaterThan(-2 + 0.1 + MOVEMENT.capsule.radius - FLOOR_EPSILON);
+    expect(s.position.x).toBeGreaterThan(2);
+  });
+});
+
+describe('stepPlayer: reproducibility', () => {
+  /** A varied scripted sequence: walk, turn, sprint, jump, crouch. */
+  const script: InputCommand[] = Array.from({ length: 240 }, (_, i) =>
+    cmd({
+      seq: i + 1,
+      moveZ: i % 90 < 70 ? 1 : 0,
+      moveX: i % 50 < 10 ? -1 : 0,
+      yaw: i * 0.01,
+      buttons:
+        (i % 60 === 20 ? Button.Jump : 0) |
+        (i > 100 && i < 140 ? Button.Sprint : 0) |
+        (i > 180 && i < 200 ? Button.Crouch : 0),
+    }),
+  );
+
+  function replay(
+    world: PhysicsWorld,
+    body: PlayerBody,
+    from: PlayerState,
+    commands: InputCommand[],
+  ) {
+    let s = from;
+    for (const c of commands) s = stepPlayer(s, c, body, world, FIXED_DT);
+    return s;
+  }
+
+  it('produces identical results in two independent worlds', () => {
+    const a = setup();
+    const b = setup();
+    const ra = replay(a.world, a.body, a.state, script);
+    const rb = replay(b.world, b.body, b.state, script);
+    expect(rb).toEqual(ra);
+  });
+
+  it('produces identical results when rewound and replayed on the same body', () => {
+    const p = setup();
+    const midpoint = replay(p.world, p.body, p.state, script.slice(0, 120));
+    const end = replay(p.world, p.body, midpoint, script.slice(120));
+    // Rewind to the midpoint and replay the tail (what reconciliation does).
+    expect(replay(p.world, p.body, midpoint, script.slice(120))).toEqual(end);
+  });
+});

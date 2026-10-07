@@ -1,6 +1,7 @@
 export { SIMULATION, FIXED_DT, TICKS_PER_SNAPSHOT } from './config/simulation';
 export { NETWORK } from './config/network';
 export { PHYSICS } from './config/physics';
+export { MOVEMENT } from './config/movement';
 
 export {
   advanceFixedTimestep,
@@ -38,6 +39,13 @@ export {
 
 export { MatchSimulation, type PlayerId } from './sim/MatchSimulation';
 export { SimulationHost } from './sim/SimulationHost';
+export {
+  createPlayerBody,
+  initialPlayerState,
+  stepPlayer,
+  type PlayerBody,
+  type PlayerState,
+} from './sim/stepPlayer';
 
 export {
   createGreyboxRoom,

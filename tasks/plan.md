@@ -13,7 +13,7 @@ Phase 1 feel check.
 
 ## Tasks
 
-- [ ] **T1 — `stepPlayer()` core movement (shared).**
+- [x] **T1 — `stepPlayer()` core movement (shared).**
   Rapier `KinematicCharacterController`, capsule collider, walk/sprint/crouch,
   gravity, jump (edge-triggered), ground detection, air control, crouch with
   blocked-uncrouch. Constants in `shared/config/movement.ts`.
