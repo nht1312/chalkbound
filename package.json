@@ -14,11 +14,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "probe:movement": "node tools/probe/movement.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.12.0",
+    "globals": "^17.13.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",

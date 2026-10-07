@@ -752,6 +752,30 @@ differs from `docs/ARCHITECTURE.md` and must not drift silently (`CLAUDE.md` §1
 | f | TypeScript (latest) | TS 7.0 is current, but `typescript-eslint` supports < 6.1 | Pinned TypeScript `~6.0` | Revisit when typescript-eslint supports TS 7 |
 | g | Rapier latest (0.21.0) | Rapier 0.20/0.21's character controller regressed. In a 1200-tick probe on a flat box floor it snagged on **462/1200** steps (horizontal movement cut to millimetres) and sank up to 14 cm below the floor even with zero vertical input. 0.14.0 and 0.19.3: **1/1200** snags, no sinking at zero vertical input | Pinned `@dimforge/rapier3d-compat` `~0.19.3` on client, server and shared. Separately, all versions sink if a grounded controller is fed gravity every tick, so `stepPlayer()` requests no downward motion while grounded (see `shared/sim/stepPlayer.ts`) | Lazy chunk halves (1.67 → 0.84 MB gzip). Re-test the probe before any upgrade |
 
+### D-04 — Phase 1 implementation decisions — **PENDING APPROVAL**
+
+Choices made while building Phase 1 that `docs/ARCHITECTURE.md` does not spell
+out, or where the code differs from it. None changes a design pillar.
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Authority stepping | Each player advances by exactly one `stepPlayer()` per applied command (up to `maxInputsPerTick`); a player without a pending command does not move that tick | Makes client replay exact: the same commands give the same states on both sides |
+| b | Float precision | `stepPlayer()` rounds its output state to float32, the precision snapshots carry | Without it, the client replayed from f32 snapshots while the authority continued in f64; near collisions the drift exceeded tolerance and caused repeat corrections (24 vs 11 in a test). With it, a correction puts the client on the authority's exact trajectory |
+| c | Predicted command | The client predicts with `quantizeInputCommand()` (the command as the authority decodes it), never the raw input | Raw yaw/axes differ from their u16/i8 encodings; predicting raw values diverges every tick |
+| d | Grounded movement | While grounded, `stepPlayer()` requests no downward motion and settles any gap to exactly the skin width with a shape cast; wall slowdown only from contacts on the capsule's side | Rapier's controller sinks when fed gravity every grounded tick, and capsule-box contacts report occasional spurious tilted normals (see D-03 g) |
+| e | Player-player collision | Players are in their own collision group and movement queries ignore other players | Avoids spawn shoving and keeps prediction independent of unpredicted remote players. Body blocking needs a Phase 8 decision |
+| f | Snapshot contents | The receiving player's full `PlayerState` (position, velocity, flags, stamina; 42 bytes, ~1.2 KB/s at 30 Hz) | Everything `stepPlayer()` reads must be restorable for replay |
+| g | Hands rendering | A separate scene and camera rendered after the world over a cleared depth buffer, rather than a layer of the world scene (§4.1) | Same effect (own FOV and near plane, never clips) with no layer bookkeeping; viewmodel lighting is independent |
+| h | Pointer lock | A pause menu shows whenever the lock is not held; the match keeps running. Mouse sensitivity is a pause-menu slider stored in `localStorage` | Multiplayer cannot pause; sensitivity is a per-player preference, not gameplay state |
+| i | Spawn point | Greybox spawn moved into the aisle between desk columns | The original spawn faced a desk 0.3 m away |
+
+**Placeholder numbers introduced** (all marked `[PLACEHOLDER]` in code, to tune
+at the feel check): walk 2.8 m/s, sprint 5.2 m/s (forward only), crouch
+1.4 m/s, jump apex 1.0 m (`shared/config/movement.ts`); sprint drain 12/s,
+jump cost 10, sprint start minimum 15 (`shared/config/stamina.ts`). Stamina
+max, regen rate and delay are from SPEC.md §17. Camera bob, FOV and hand
+pose values are in `apps/client/src/config/client.ts`.
+
 ---
 
 ## 6. Open questions requiring a decision before implementation

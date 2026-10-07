@@ -1,7 +1,7 @@
 # CHALKBOUND — Development Roadmap
 
 **Date:** 2026-10-07
-**Status:** Proposal. No phase is approved and no code has been written.
+**Status:** Phases 0 and 1 implemented (2026-10-07); Phase 1 awaits the user's feel check. Later phases are proposals.
 **Rule (prompt §11):** each phase requires explicit approval before it starts.
 Completing one phase does not authorize the next.
 
@@ -91,6 +91,8 @@ Phase 4 proves *discrimination works*.
 
 ## Phase 0 — Foundation
 
+**Status:** Implemented 2026-10-07. Deviations recorded in SPEC_AUDIT D-03.
+
 **Estimate:** 3–5 days
 
 ### Deliverables
@@ -125,6 +127,11 @@ round-trip. Transport latency injection.
 ---
 
 ## Phase 1 — Player
+
+**Status:** Implemented 2026-10-07 (`tasks/plan.md` T1–T7). The automated exit probe
+(`pnpm probe:movement`, against `pnpm dev`) passes at 150 ms one-way latency and 5%
+loss. **"Movement feels responsive and correct" is the user's call and is still open.**
+Implementation notes and placeholder numbers in SPEC_AUDIT D-04.
 
 **Estimate:** 4–6 days
 

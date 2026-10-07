@@ -53,6 +53,6 @@ Phase 1 feel check.
   walk, and sprint poses.
   *Accept:* no clipping into walls; the pose follows movement state.
 
-- [ ] **T7 — Phase 1 exit check.**
+- [x] **T7 — Phase 1 exit check.**
   Headless probe plus manual check at `?latency=150&loss=0.05`; docs updated.
   *Accept:* the ROADMAP Phase 1 exit criteria hold.
