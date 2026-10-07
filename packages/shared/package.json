@@ -10,6 +10,6 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "~0.21.0"
+    "@dimforge/rapier3d-compat": "~0.19.3"
   }
 }

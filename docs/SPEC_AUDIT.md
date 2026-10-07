@@ -401,13 +401,13 @@ single-process test both run in the same machine's memory.
 the non-compat build on the server where bundler constraints do not apply;
 measure WASM memory explicitly at Phase 0 and record the number.
 
-*Measured at Phase 0 (Rapier 0.21.0, 2026-10-07):*
+*Measured (Rapier 0.19.3 — see D-03 g — 2026-10-07):*
 
 | Where | Measurement |
 |---|---|
-| Client chunk | `rapier` lazy chunk 4.33 MB raw / **1.67 MB gzip**, kept out of the initial bundle (main chunk 138 KB gzip) |
-| Client load | Ready 560–740 ms after first paint (headless Chrome, local dev server) |
-| Server (Node 24) | `init()` 77 ms, **+2.7 MB** ArrayBuffer (WASM linear memory), +10.3 MB RSS incl. module parse |
+| Client chunk | `rapier` lazy chunk 2.23 MB raw / **0.84 MB gzip**, kept out of the initial bundle (main chunk 138 KB gzip). 0.21.0 was 1.67 MB gzip |
+| Client load | Ready 560–740 ms after first paint (headless Chrome, local dev server; measured on 0.21.0) |
+| Server (Node 24) | `init()` 23 ms, **+1.5 MB** ArrayBuffer (WASM linear memory), +4.9 MB RSS incl. module parse |
 | Greybox world | 15 static colliders, ~2 MB additional RSS |
 
 The browser does not expose Rapier's WASM heap (the compat build's `init()`
@@ -750,6 +750,7 @@ differs from `docs/ARCHITECTURE.md` and must not drift silently (`CLAUDE.md` §1
 | d | Transport implementations in `apps/client/src/net/` (§2) | `LoopbackTransport` is needed by shared tests and by both ends of the loop | `Transport` + `LoopbackTransport` in `packages/shared/src/net/`; `SimulationHost` (loopback socket layer) in `shared/sim/`. WebSocket transport will still live in the client | Layout only |
 | e | Overlay shows "WASM heap" (§9) | Not observable in the browser (see R-06) | Overlay shows JS heap; WASM measured on the server | Overlay content only |
 | f | TypeScript (latest) | TS 7.0 is current, but `typescript-eslint` supports < 6.1 | Pinned TypeScript `~6.0` | Revisit when typescript-eslint supports TS 7 |
+| g | Rapier latest (0.21.0) | Rapier 0.20/0.21's character controller regressed. In a 1200-tick probe on a flat box floor it snagged on **462/1200** steps (horizontal movement cut to millimetres) and sank up to 14 cm below the floor even with zero vertical input. 0.14.0 and 0.19.3: **1/1200** snags, no sinking at zero vertical input | Pinned `@dimforge/rapier3d-compat` `~0.19.3` on client, server and shared. Separately, all versions sink if a grounded controller is fed gravity every tick, so `stepPlayer()` requests no downward motion while grounded (see `shared/sim/stepPlayer.ts`) | Lazy chunk halves (1.67 → 0.84 MB gzip). Re-test the probe before any upgrade |
 
 ---
 

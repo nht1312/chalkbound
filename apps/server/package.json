@@ -11,7 +11,7 @@
     "@chalkbound/shared": "workspace:*",
     "@colyseus/core": "~0.16.26",
     "@colyseus/ws-transport": "~0.16.5",
-    "@dimforge/rapier3d-compat": "~0.21.0"
+    "@dimforge/rapier3d-compat": "~0.19.3"
   },
   "devDependencies": {
     "@types/node": "24",
