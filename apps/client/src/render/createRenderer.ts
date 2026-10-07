@@ -9,10 +9,10 @@ export interface RendererHandle {
   dispose(): void;
 }
 
-/** Creates the WebGL renderer and keeps it (and the camera aspect) in sync with the window. */
+/** Creates the WebGL renderer and keeps it, and every camera's aspect, in sync with the window. */
 export function createRenderer(
   canvas: HTMLCanvasElement,
-  camera: PerspectiveCamera,
+  cameras: readonly PerspectiveCamera[],
   config: RendererConfig,
 ): RendererHandle {
   const renderer = new WebGLRenderer({
@@ -21,14 +21,19 @@ export function createRenderer(
     powerPreference: 'high-performance',
   });
   renderer.toneMapping = ACESFilmicToneMapping;
+  // The frame is two passes (world, then hands); the caller clears and resets stats.
+  renderer.autoClear = false;
+  renderer.info.autoReset = false;
 
   const resize = (): void => {
     const width = window.innerWidth;
     const height = window.innerHeight;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, config.maxPixelRatio));
     renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
+    for (const camera of cameras) {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
   };
   resize();
   window.addEventListener('resize', resize);

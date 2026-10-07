@@ -48,7 +48,7 @@ Phase 1 feel check.
   configurable sensitivity, pause overlay on pointer-lock loss.
   *Accept:* unit tests for the bob, lerp, and FOV curves; manual feel check.
 
-- [ ] **T6 — FPP hands.**
+- [x] **T6 — FPP hands.**
   Greybox arms on a separate camera layer (own FOV and near plane) with idle,
   walk, and sprint poses.
   *Accept:* no clipping into walls; the pose follows movement state.

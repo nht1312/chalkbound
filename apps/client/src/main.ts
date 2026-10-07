@@ -10,6 +10,8 @@ import {
 import { CLIENT_CONFIG } from './config/client';
 import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
 import { FppCamera } from './camera/FppCamera';
+import { createViewmodel } from './hands/createViewmodel';
+import { handTransforms, initialHandRig, updateHandRig } from './hands/handRig';
 import { createDebugReadout } from './debug/debugReadout';
 import { createStatsOverlay } from './debug/statsOverlay';
 import { DEFAULT_BINDINGS } from './input/bindings';
@@ -39,7 +41,9 @@ function bootstrap(): void {
   const feelCfg = CLIENT_CONFIG.feel;
   const camera = new PerspectiveCamera(feelCfg.baseFov, 1, camCfg.near, camCfg.far);
   let feel = initialCameraFeel(feelCfg);
-  const { renderer } = createRenderer(canvas, camera, CLIENT_CONFIG.render);
+  const viewmodel = createViewmodel(CLIENT_CONFIG.hands.lens);
+  let handRig = initialHandRig();
+  const { renderer } = createRenderer(canvas, [camera, viewmodel.camera], CLIENT_CONFIG.render);
   const scene = createTestScene(level);
 
   // Authority behind a loopback link (ARCHITECTURE D-01); Phase 8 swaps in a socket.
@@ -136,17 +140,15 @@ function bootstrap(): void {
 
     const feet = predictor?.renderPosition(alpha) ?? level.spawn;
     const player = predictor?.state;
-    feel = updateCameraFeel(
-      feel,
-      {
-        horizontalSpeed: player ? Math.hypot(player.velocity.x, player.velocity.z) : 0,
-        grounded: player?.grounded ?? true,
-        crouching: player?.crouching ?? false,
-        sprinting: player?.sprinting ?? false,
-      },
-      frameDelta,
-      feelCfg,
-    );
+    const movement = {
+      horizontalSpeed: player ? Math.hypot(player.velocity.x, player.velocity.z) : 0,
+      grounded: player?.grounded ?? true,
+      crouching: player?.crouching ?? false,
+      sprinting: player?.sprinting ?? false,
+    };
+    feel = updateCameraFeel(feel, movement, frameDelta, feelCfg);
+    handRig = updateHandRig(handRig, movement, frameDelta, CLIENT_CONFIG.hands.rig);
+    viewmodel.apply(handTransforms(handRig, feel.bobPhase, CLIENT_CONFIG.hands.rig));
     const bob = bobOffset(feel, feelCfg);
     // Sway along the camera's right axis (yaw only).
     camera.position.set(
@@ -160,7 +162,12 @@ function bootstrap(): void {
     }
     predictor?.decayVisualOffset(frameDelta);
     look.applyTo(camera);
+    // World, then hands over a cleared depth buffer so they never clip into walls.
+    renderer.info.reset();
+    renderer.clear();
     renderer.render(scene, camera);
+    renderer.clearDepth();
+    renderer.render(viewmodel.scene, viewmodel.camera);
     stats.update(frameDelta);
   });
 
