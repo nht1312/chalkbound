@@ -49,7 +49,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
 
 ## Tasks
 
-- [ ] **T1 — Drawing types and normalization (shared).**
+- [x] **T1 — Drawing types and normalization (shared).**
   `PlanePoint`, `Stroke`, `Sketch`, and `shared/config/drawing.ts`.
   `normalize.ts` resamples each stroke to 32 points by arc length, then
   centres and uniformly scales the whole-drawing bounding box so the longer
@@ -151,7 +151,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   chalk cost, and whether you can afford it (from authoritative chalk).
   *Accept:* tests for affordability and for generating the shape diagram.
 
-- [ ] **T10 — Phase 3 exit check.**
+- [x] **T10 — Phase 3 exit check.**
   - A headless probe picks up chalk, draws a sword through draw mode and gets
     `created` (−20 chalk). A scribble gets `unrecognized` (−5).
   - Pointer lock holds throughout.

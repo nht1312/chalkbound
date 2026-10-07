@@ -6,6 +6,7 @@ export { STAMINA } from './config/stamina';
 export { ECONOMY } from './config/economy';
 export { INVENTORY } from './config/inventory';
 export { INTERACTION } from './config/interaction';
+export { DRAWING } from './config/drawing';
 
 export {
   advanceFixedTimestep,
@@ -86,3 +87,13 @@ export {
   type SurfaceKind,
 } from './world/greyboxRoom';
 export { createStaticWorld, type PhysicsWorld, type Rapier } from './physics/staticWorld';
+
+export type {
+  NormalizedDrawing,
+  NormalizedStroke,
+  PlanePoint,
+  Point2,
+  Sketch,
+  Stroke,
+} from './drawing/types';
+export { normalizeSketch, pathLength, resampleStroke } from './drawing/normalize';
