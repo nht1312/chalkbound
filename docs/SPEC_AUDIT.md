@@ -401,6 +401,20 @@ single-process test both run in the same machine's memory.
 the non-compat build on the server where bundler constraints do not apply;
 measure WASM memory explicitly at Phase 0 and record the number.
 
+*Measured at Phase 0 (Rapier 0.21.0, 2026-10-07):*
+
+| Where | Measurement |
+|---|---|
+| Client chunk | `rapier` lazy chunk 4.33 MB raw / **1.67 MB gzip**, kept out of the initial bundle (main chunk 138 KB gzip) |
+| Client load | Ready 560–740 ms after first paint (headless Chrome, local dev server) |
+| Server (Node 24) | `init()` 77 ms, **+2.7 MB** ArrayBuffer (WASM linear memory), +10.3 MB RSS incl. module parse |
+| Greybox world | 15 static colliders, ~2 MB additional RSS |
+
+The browser does not expose Rapier's WASM heap (the compat build's `init()`
+returns no memory handle), so the client overlay shows JS heap (Chrome only)
+and the server log carries the WASM figure. See D-03 for the server build
+change.
+
 ### R-07 — Drawing automation
 
 Server re-validation guarantees submitted strokes are geometrically valid. It
@@ -722,6 +736,20 @@ judged, and a wrong answer there invalidates later phases.
 
 **Impact.** Phase 3 grows by roughly two days. Phase 10 shrinks accordingly. No
 change to design or scope.
+
+### D-03 — Phase 0 implementation deviations from ARCHITECTURE.md — **PENDING APPROVAL**
+
+None of these touch a design pillar. They are recorded because the code now
+differs from `docs/ARCHITECTURE.md` and must not drift silently (`CLAUDE.md` §17).
+
+| # | Original design | Technical problem | Change made | Impact |
+|---|---|---|---|---|
+| a | Server uses `@dimforge/rapier3d` (§1.2) | That build is bundler-only: no `main`/`exports`, extensionless internal imports. It fails to load in plain Node 24, with or without `--experimental-wasm-modules`. | Server uses `@dimforge/rapier3d-compat`, same as the client | +~1 MB server install, irrelevant at runtime. **Benefit:** `packages/shared` can type against one Rapier API, which Phase 1's shared `stepPlayer()` needs |
+| b | `colyseus` package (§1.3) | The meta-package pulls in `@colyseus/redis-presence` and `redis-driver` | Depend on `@colyseus/core` + `@colyseus/ws-transport` directly | Same API, no Redis dependencies |
+| c | Colyseus 0.16.x (§1.3) | Followed as written; 0.18.x is now current | Pinned `~0.16.26` | Decide before Phase 8 whether to move to 0.18 |
+| d | Transport implementations in `apps/client/src/net/` (§2) | `LoopbackTransport` is needed by shared tests and by both ends of the loop | `Transport` + `LoopbackTransport` in `packages/shared/src/net/`; `SimulationHost` (loopback socket layer) in `shared/sim/`. WebSocket transport will still live in the client | Layout only |
+| e | Overlay shows "WASM heap" (§9) | Not observable in the browser (see R-06) | Overlay shows JS heap; WASM measured on the server | Overlay content only |
+| f | TypeScript (latest) | TS 7.0 is current, but `typescript-eslint` supports < 6.1 | Pinned TypeScript `~6.0` | Revisit when typescript-eslint supports TS 7 |
 
 ---
 

@@ -1,0 +1,20 @@
+{
+  "name": "@chalkbound/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@chalkbound/shared": "workspace:*",
+    "@colyseus/core": "~0.16.26",
+    "@colyseus/ws-transport": "~0.16.5",
+    "@dimforge/rapier3d-compat": "~0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "24",
+    "tsx": "^4.23.15"
+  }
+}
