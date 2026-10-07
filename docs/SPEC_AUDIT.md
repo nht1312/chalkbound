@@ -776,6 +776,23 @@ jump cost 10, sprint start minimum 15 (`shared/config/stamina.ts`). Stamina
 max, regen rate and delay are from SPEC.md §17. Camera bob, FOV and hand
 pose values are in `apps/client/src/config/client.ts`.
 
+### D-05 — Phase 2 implementation decisions — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Interact reach | 2 m from the player's **eyes** to the object's centre, checked by the authority on every intent [PLACEHOLDER] | Eye-based reach makes crouching to reach floor boxes natural. Standing and crouching eye heights moved to shared `MOVEMENT` so client and server cannot disagree |
+| b | Pickup with a nearly full meter | Take what fits; the box keeps the rest and disappears only at 0 | No chalk is ever silently destroyed (pillar 2, scarcity) |
+| c | Respawn | Chalk boxes do not respawn within a match | Simplest; respawn is a level-design lever to revisit with the School map |
+| d | Line of sight | Not checked yet | The greybox is one room. **Must be added in Phase 6**, or boxes can be taken through walls |
+| e | Box state on the wire | Every snapshot lists every box (3 bytes each) | Loss-tolerant and trivial at 3 boxes; per-client interest filtering is a Phase 8 item |
+| f | Snapshot ordering | The client keeps the snapshot with the highest **server tick**, not the highest acked seq | An idle player's snapshots share one seq; ordering by seq let a late snapshot overwrite newer chalk/box state (bug found and fixed in T4) |
+| g | Targeting | The client prompt targets the box nearest the screen centre within reach and a 12° cone, measured from the predicted eye; the authority re-validates | The prompt never offers what the server will refuse |
+| h | Chalk boxes as colliders | Not colliders; players walk through them | Small props; avoids snagging. Revisit with real art |
+| i | Crosshair | A small centre dot was added to the HUD | Aiming at objects needs a reference point; SPEC §15 lists only the meter, health, etc. |
+
+The inventory model (6 slots, per-item stack limits) exists in `shared/sim/inventory.ts`
+with no UI and no real items; the sword (Phase 4) is its first user.
+
 ---
 
 ## 6. Open questions requiring a decision before implementation

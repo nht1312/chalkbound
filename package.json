@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "probe:movement": "node tools/probe/movement.mjs"
+    "probe:movement": "node tools/probe/movement.mjs",
+    "probe:chalk": "node tools/probe/chalk.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

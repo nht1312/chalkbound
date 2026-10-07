@@ -65,7 +65,7 @@ validates it and decides the outcome.
   *Accept:* unit tests for target selection; the HUD updates only from
   snapshots.
 
-- [ ] **T6 — Phase 2 exit check.**
+- [x] **T6 — Phase 2 exit check.**
   Extend the headless probe:
   - walk to a box, press E, and chalk rises on the server and in the HUD;
   - a forged interact for a far box and a tampered client value change nothing.

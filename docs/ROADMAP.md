@@ -1,7 +1,7 @@
 # CHALKBOUND — Development Roadmap
 
 **Date:** 2026-10-07
-**Status:** Phases 0 and 1 implemented (2026-10-07); Phase 1 awaits the user's feel check. Later phases are proposals.
+**Status:** Phases 0–2 implemented (2026-10-07). Phase 1 feel was tuned once (jump, hands); Phase 2 awaits the user's play check. Later phases are proposals.
 **Rule (prompt §11):** each phase requires explicit approval before it starts.
 Completing one phase does not authorize the next.
 
@@ -163,6 +163,11 @@ arithmetic. Reconciliation convergence under injected latency and loss.
 ---
 
 ## Phase 2 — Chalk
+
+**Status:** Implemented 2026-10-07 (`tasks/plan.md` T1–T6). The exit probe
+(`pnpm probe:chalk`, against `pnpm dev`) passes at 150 ms one-way latency and 5% loss:
+E at a box raises chalk on the server and the HUD; a forged interaction and a tampered
+client value change nothing. Decisions not in the spec: SPEC_AUDIT D-05.
 
 **Estimate:** 2–3 days
 

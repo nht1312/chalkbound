@@ -205,7 +205,7 @@ function bootstrap(): void {
   // Exposed only in dev builds for console inspection.
   if (import.meta.env.DEV) {
     Object.assign(window, {
-      chalkbound: { scene, camera, renderer, net, predictor: () => predictor },
+      chalkbound: { scene, camera, renderer, net, look, level, predictor: () => predictor },
     });
   }
 }
