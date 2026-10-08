@@ -148,6 +148,35 @@ export async function openPage(url) {
         await send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
       }
     },
+    /**
+     * Mouse input for a pointer-locked page. Chrome derives movementX/Y from
+     * the change in the synthetic position, so the probe keeps its own
+     * virtual pointer and moves it in steps.
+     */
+    mouse: {
+      x: 640,
+      y: 360,
+      button: (type, button) =>
+        send('Input.dispatchMouseEvent', {
+          type,
+          x: page.mouse.x,
+          y: page.mouse.y,
+          button,
+          clickCount: 1,
+          buttons: type === 'mousePressed' ? (button === 'right' ? 2 : 1) : 0,
+        }),
+      async moveBy(dx, dy, buttons = 0) {
+        page.mouse.x += dx;
+        page.mouse.y += dy;
+        await send('Input.dispatchMouseEvent', {
+          type: 'mouseMoved',
+          x: page.mouse.x,
+          y: page.mouse.y,
+          button: 'none',
+          buttons,
+        });
+      },
+    },
     /** Polls `expression` until truthy or the timeout passes; returns the last value. */
     async waitFor(expression, timeoutMs = 10000, intervalMs = 100) {
       const deadline = Date.now() + timeoutMs;
@@ -169,6 +198,55 @@ export async function openPage(url) {
     },
   };
   return page;
+}
+
+/**
+ * Points the client's own look angles at a chalk box. Mouse deltas are
+ * unreliable headless, and the authority re-checks reach regardless, so
+ * aiming this way tests the same thing with less noise.
+ */
+export async function aimAtChalkBox(page, boxId) {
+  await page.evaluate(`(() => {
+    const { look, level, predictor } = window.chalkbound;
+    const p = predictor().state.position;
+    const box = level.chalkBoxes.find((b) => b.id === ${boxId}).position;
+    const dx = box.x - p.x, dy = box.y - (p.y + 1.65), dz = box.z - p.z;
+    look.yaw = Math.atan2(-dx, -dz);
+    look.pitch = Math.atan2(dy, Math.hypot(dx, dz));
+  })()`);
+}
+
+/** The interact prompt's text, or '' while it is hidden. */
+export const PROMPT_TEXT =
+  "(() => { const el = document.querySelector('.interact-prompt'); return el.hidden ? '' : el.textContent; })()";
+
+/**
+ * Walks forward to `boxId` and aims at it, retrying until the prompt appears.
+ *
+ * The retry is not politeness: under SwiftShader the frame rate wanders, so
+ * how far one keyDown carries the player varies between runs. Polling for
+ * the prompt — which the authority's own reach check drives — is the
+ * reliable signal that we have arrived, rather than guessing at a z.
+ */
+export async function walkToChalkBox(page, boxId, stopZ, report) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await page.key('keyDown', 'w');
+    await page.waitFor(
+      `window.chalkbound.predictor().state.position.z <= ${stopZ}`,
+      attempt === 0 ? 8000 : 1500,
+      25,
+    );
+    await page.key('keyUp', 'w');
+    await sleep(400);
+    await aimAtChalkBox(page, boxId);
+    const shown = await page.waitFor(PROMPT_TEXT, 2000, 50);
+    if (shown) {
+      report?.check(true, 'walked into reach of the chalk box', `"${shown}"`);
+      return shown;
+    }
+  }
+  report?.check(false, 'walked into reach of the chalk box', 'the prompt never appeared');
+  return '';
 }
 
 /** Waits for prediction and the first snapshot, then clicks Resume to take pointer lock. */

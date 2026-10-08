@@ -5,7 +5,7 @@
 //
 //   pnpm dev                       # in another terminal
 //   pnpm probe:chalk [url]         # default: 150 ms one-way, 5% loss
-import { createReport, openPage, sleep, startPlaying } from './lib.mjs';
+import { createReport, openPage, sleep, startPlaying, walkToChalkBox } from './lib.mjs';
 
 const url = process.argv[2] ?? 'http://localhost:5173/?latency=150&loss=0.05';
 /** Box 3 sits on the floor below the blackboard, at the end of the spawn aisle. */
@@ -26,31 +26,11 @@ try {
   const net = (field) => page.evaluate(`window.chalkbound.net.${field}`);
   const boxRemaining = (id) => page.evaluate(`window.chalkbound.net.chalkBoxes.get(${id})`);
   const hud = () => page.evaluate(`document.querySelector('.chalk-meter__label')?.textContent`);
-  const promptText = () =>
-    page.evaluate(
-      `(() => { const el = document.querySelector('.interact-prompt'); return el.hidden ? '' : el.textContent; })()`,
-    );
 
   report.check((await net('chalk')) === 0, 'players start with no chalk (server)');
 
-  // 1. Walk up the aisle toward the blackboard.
-  await page.key('keyDown', 'w');
-  await page.waitFor(`window.chalkbound.predictor().state.position.z <= ${STOP_Z}`, 6000, 25);
-  await page.key('keyUp', 'w');
-  await sleep(500);
-
-  // 2. Aim at the box: point the client's own look angles at it (mouse deltas
-  // are unreliable headless). The server re-checks reach regardless.
-  await page.evaluate(`(() => {
-    const { look, level, predictor } = window.chalkbound;
-    const p = predictor().state.position;
-    const box = level.chalkBoxes.find((b) => b.id === ${NEAR_BOX}).position;
-    const dx = box.x - p.x, dy = box.y - (p.y + 1.65), dz = box.z - p.z;
-    look.yaw = Math.atan2(-dx, -dz);
-    look.pitch = Math.atan2(dy, Math.hypot(dx, dz));
-  })()`);
-  await sleep(300);
-  const shown = await promptText();
+  // 1–2. Walk up the aisle to the box and aim at it.
+  const shown = await walkToChalkBox(page, NEAR_BOX, STOP_Z, report);
   report.check(shown.includes('Pick up chalk'), 'aiming at the box shows the prompt', `"${shown}"`);
 
   // 3. Press E: one intent; the authority validates and the snapshot reports the result.

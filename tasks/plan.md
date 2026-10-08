@@ -202,7 +202,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   generated from the blueprint's own `reference` path, so the taught shape
   and the graded shape cannot drift. Decisions recorded as SPEC_AUDIT D-13.
 
-- [ ] **T10 — Phase 3 exit check.**
+- [x] **T10 — Phase 3 exit check.**
   - A headless probe picks up chalk, draws a sword through draw mode and gets
     `created` (−20 chalk). A scribble gets `unrecognized` (−5).
   - Pointer lock holds throughout.
@@ -211,3 +211,11 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   *Accept:* ROADMAP exit criteria 2, 3, 5 and 9 verified by tests and the
   probe. Criteria 4 (a human passes ≥ 9/10) and 10 (the feel gate) are the
   user's call.
+
+  Landed as `apps/client/src/drawing/drawLoop.test.ts` (the whole client path
+  at 60 Hz into a real authority) and `tools/probe/drawing.mjs`
+  (`pnpm probe:drawing`). The probe passes at 150 ms / 5% loss: a drawn sword
+  returns created / keen for 20 chalk, a scribble returns unrecognized for 5,
+  and pointer lock holds throughout. Criteria 2, 3, 5 and 9 are met; 4 and 10
+  remain owed, with T8's manual check. Fixed an intermittent failure in the
+  **Phase 2** probe along the way. Decisions recorded as SPEC_AUDIT D-14.

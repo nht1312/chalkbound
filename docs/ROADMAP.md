@@ -195,6 +195,20 @@ stack-limit behaviour.
 
 ## Phase 3 — Drawing
 
+**Status:** Implemented 2026-10-08 (`tasks/plan.md` T1–T10). The exit probe
+(`pnpm probe:drawing`, against `pnpm dev`) passes at 150 ms one-way latency and
+5% loss: chalk is picked up, holding RMB raises the chalk, real pointer-locked
+mouse deltas drive the cursor, a drawn sword comes back **created / keen** for
+20 chalk with the banner reading "SWORD — Keen", a scribble comes back
+**unrecognized** for 5, and pointer lock is held throughout. Decisions not in
+the spec: SPEC_AUDIT D-06 to D-14.
+
+**Still owed — the user's call, not verifiable by any test:** criterion 4 (a
+human passes ≥ 9 of 10) and criterion 10 (the feel gate), together with the
+manual check T8 asks for on the scratch audio, the dust and the glow. The
+thresholds, cursor speed, sample rate, fade and hand pose are all
+[PLACEHOLDER] until that pass happens.
+
 **Estimate:** 8–12 days — **the highest-risk and highest-value phase**
 
 ### Deliverables
@@ -235,6 +249,15 @@ All vertical-slice criteria 2, 3, 4, 5, 9, and 10 pass. Client and server
 validation agree on every fixture in the corpus. A failed sketch produces
 feedback naming the actual problem, and an unreadable sketch says so rather than
 guessing.
+
+**Met 2026-10-08:** criterion 2 (pointer lock held across the whole loop,
+checked at every step of the probe), criterion 3 (the recorder keeps a sample
+for every frame at 60 Hz, with even spacing — `drawLoop.test.ts`), criterion 5
+(six non-swords — a bare line, two scribbles, parallel lines, an X and a box —
+refused rather than guessed, both in the corpus and drawn through the real
+client), and criterion 9 (the corpus suite, zero misclassifications). Criteria
+4 and 10 remain open; criterion 1 (60 FPS) belongs to the slice's own pass, and
+criteria 6, 7 and 8 to Phases 4–5.
 
 ### Tests
 

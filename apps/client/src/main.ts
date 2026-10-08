@@ -14,6 +14,7 @@ import {
   SIMULATION_TIMESTEP,
   toDrawingResultOutcome,
   validateSketch,
+  type Sketch,
 } from '@chalkbound/shared';
 import { CLIENT_CONFIG } from './config/client';
 import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
@@ -317,7 +318,23 @@ function bootstrap(): void {
   // Exposed only in dev builds for console inspection.
   if (import.meta.env.DEV) {
     Object.assign(window, {
-      chalkbound: { scene, camera, renderer, net, look, level, predictor: () => predictor },
+      chalkbound: {
+        scene,
+        camera,
+        renderer,
+        net,
+        look,
+        level,
+        drawMode,
+        // Lets a probe ask the shared validator why a sketch failed, and
+        // lets a real sketch be saved as a fixture (plan decision 4).
+        drawing: {
+          quantize: quantizeSketch,
+          validate: (sketch: Sketch, heldChalk = ECONOMY.chalk.max) =>
+            validateSketch(quantizeSketch(sketch), { heldChalk }),
+        },
+        predictor: () => predictor,
+      },
     });
   }
 }

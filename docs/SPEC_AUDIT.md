@@ -947,6 +947,26 @@ affordability rule are covered, the rendering is not.
 
 ---
 
+### D-14 — Phase 3 exit-check decisions (T10) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | The loop is proved twice | A deterministic 60 Hz test drives `DrawMode` with synthetic mouse deltas into a real `MatchSimulation` (`drawLoop.test.ts`), and a browser probe repeats it for real | The test runs in CI and pins the logic; the probe catches what only a browser has — pointer lock, real pointer-locked deltas, the rendering path. Neither alone is the exit check |
+| b | Strokes are dispatched **inside** the page | The probe sends `mousemove` events from in-page script, one step per animation frame, rather than one DevTools round trip per step | A round trip costs ~100 ms here, so driving a sketch over the wire took 29 s — and the blueprint's own timing constraint rejected it. The probe was failing the drawing on its own latency. In-page events still go through the real document listeners, `InputState`, `DrawMode` and the recorder; only the transport differs, and the probe still uses real DevTools input for the draw button and for proving pointer-locked deltas reach the cursor |
+| c | The dev build exposes the validator | `window.chalkbound.drawing.validate` / `.quantize`, dev only | It turned a bare "unrecognized" into "accuracy 0.9999, failed `bad-timing`", which is what found (b). It also gives plan decision 4 its fixture-capture hook |
+| d | The probe walk polls for the prompt | `walkToChalkBox` retries and waits for the interact prompt instead of trusting one keypress to cover a fixed distance | Under SwiftShader the frame rate wanders, so a fixed walk is a coin flip. This was already making the **Phase 2** probe fail intermittently; the helper fixes both |
+| e | Criteria 4 and 10 are reported, not closed | The ROADMAP records them as owed, with the T8 manual check | They are the user's judgement by definition, and the phase's whole purpose is the question they answer |
+
+**Found and fixed.** The Phase 2 exit probe had become intermittently red —
+not a Phase 3 regression, but a pre-existing race between the walk and the
+frame rate. It passes again at 150 ms and 5% loss.
+
+**Measured.** A sword drawn through the real client: accuracy 1.00, quality
+keen, 20 chalk, drawn in 2.4 s. A scribble: unrecognized, 5 chalk. Pointer
+lock held across both.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07
