@@ -908,6 +908,29 @@ it is not. Nothing in T7 has been seen on screen.
 
 ---
 
+### D-12 — Phase 3 feedback-channel decisions (T8) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | The scratch is synthesized | Filtered white noise through a bandpass and a lowpass, built in Web Audio with no asset file | That is physically what a scratch is: broad noise with a resonant peak. It also keeps the first audible phase free of an asset pipeline that does not exist yet |
+| b | Silence needs no AudioContext | The node graph is built on the first audible frame, not at load | Browsers refuse to start a context before a user gesture, and building one at load earns a console warning on every page open. A browser that refuses outright degrades to silence rather than throwing into the frame loop |
+| c | Gain follows `setTargetAtTime` | Not a per-frame assignment, and the pure curve is smoothed before it reaches the node | Stepping gain once per frame turns a scratch into a buzz |
+| d | The scratch needs contact, not motion | `scratchFromSpeed(speed, touching, …)`: a cursor flying across the plane with the chalk lifted is silent | Nothing is scraping. Making it an explicit argument rather than a caller convention means the rule is testable |
+| e | Pitch tracks the full speed range, gain only the audible part | Rate interpolates over `0..fullSpeed` while gain starts at `minSpeed` | The chalk already sounds like it is moving by the time it becomes audible, so the sound fades in rather than snapping on at a pitch floor |
+| f | Dust emission is rate-based with a carried fraction | `emitRate × (speed / fullSpeed) × dt`, accumulating the remainder across frames, and the remainder is dropped when the chalk lifts | Flooring per frame would silently drop most of the emission at 60 Hz. Dropping the remainder on lift stops a new stroke emitting before it has moved |
+| g | Dust lives in a fixed pool, compacted by swap | Dead motes are swapped with the last live one, keeping the live range contiguous | The renderer then uploads one range per frame instead of walking a free list, and order means nothing to dust |
+| h | Each mote's fade rides in its vertex colour | Rather than a per-mote material or opacity | Keeps the whole field to one draw call, which matters under the 60 FPS target (CLAUDE.md §14) |
+| i | The glow envelope starts at **submission** | Not when the verdict arrives, and its attack plus hold (300 ms) exceeds a realistic 150 ms round trip | This is the mitigation R-03 names: the player sees their sketch light up at once and the confirmation lands inside the glow instead of after a pause. A test asserts the window covers 150 ms |
+| j | The glow outlives the plane | The trail's opacity is `max(planeFade, glow)`, and the group stays visible while either is above zero | The sketch should keep burning for a moment after the board has gone, which is what makes the resolve read as the drawing becoming real |
+
+**Not verified.** Audio and particles cannot be tested headlessly: the curves,
+the emission rate, the envelope and the buffer writers are covered, and the
+node graph, the point cloud and the glow material have never been heard or
+seen. T8's own acceptance criteria ask for a manual check, and it is
+outstanding — together with the T6 feel pass.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

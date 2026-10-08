@@ -172,7 +172,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   `@chalkbound/shared/testing/drawing` subpath. Decisions recorded as
   SPEC_AUDIT D-11.
 
-- [ ] **T8 — Drawing feedback channel (D-02).**
+- [x] **T8 — Drawing feedback channel (D-02).**
   - A chalk scratch loop, synthesized in Web Audio with no asset files, whose
     gain and playback rate track cursor speed.
   - Chalk dust particles at the cursor.
@@ -180,6 +180,15 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
 
   *Accept:* unit tests for the speed→gain/rate curve and the particle emission
   rate; a manual check.
+
+  Landed in `client/audio/chalkScratch.ts` (the curve) and
+  `createScratchVoice.ts` (synthesized Web Audio, no assets),
+  `client/drawing/DustField.ts`, `client/drawing/glow.ts`, and dust plus glow
+  rendering in `createChalkPlane`. The glow envelope starts at *submission*
+  and its 300 ms attack-plus-hold covers the verdict round trip (R-03).
+  Decisions recorded as SPEC_AUDIT D-12.
+  **The manual check is outstanding** — audio and particles cannot be
+  verified headlessly.
 
 - [ ] **T9 — Codex, first pass.**
   An overlay, opened by holding Tab, showing every known blueprint: its shape

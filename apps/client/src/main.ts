@@ -19,7 +19,11 @@ import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraF
 import { FppCamera } from './camera/FppCamera';
 import { createViewmodel } from './hands/createViewmodel';
 import { handTransforms, initialHandRig, updateHandRig } from './hands/handRig';
+import { cursorSpeed, scratchFromSpeed, approachLevel } from './audio/chalkScratch';
+import { createScratchVoice } from './audio/createScratchVoice';
 import { DrawMode } from './drawing/DrawMode';
+import { DustField } from './drawing/DustField';
+import { glowDuration, glowIntensity } from './drawing/glow';
 import { createDebugReadout } from './debug/debugReadout';
 import { createStatsOverlay } from './debug/statsOverlay';
 import { DEFAULT_BINDINGS } from './input/bindings';
@@ -120,6 +124,15 @@ function bootstrap(): void {
     { ...drawCfg.plane, halfExtent: drawCfg.halfExtent },
     DRAWING.wire.maxStrokes * DRAWING.wire.maxPointsPerStroke,
   );
+  // The drawing feedback channel (D-02): scratch, dust and glow are the
+  // mechanic's confirmation that a stroke registered, not decoration.
+  const dust = new DustField(drawCfg.dust);
+  const scratchVoice = createScratchVoice(drawCfg.scratch.voice);
+  let scratchGain = 0;
+  let scratchRate: number = drawCfg.scratch.minRate;
+  let lastCursor = drawMode.cursor;
+  /** Seconds since the last submission, or undefined when nothing is resolving. */
+  let resolving: number | undefined;
   createPauseMenu(root, input, {
     settings,
     limits: settingsLimits,
@@ -186,7 +199,22 @@ function bootstrap(): void {
     });
     if (!drawMode.active) look.applyMouseDelta(dx, dy);
 
+    // Scratch and dust both follow how fast the chalk is actually moving.
+    const speed = drawMode.active ? cursorSpeed(lastCursor, drawMode.cursor, frameDelta) : 0;
+    lastCursor = drawMode.cursor;
+    const touching = drawMode.active && input.isDown('Attack');
+    const scratch = scratchFromSpeed(speed, touching, drawCfg.scratch);
+    scratchGain = approachLevel(scratchGain, scratch.gain, frameDelta, drawCfg.scratch.smoothing);
+    scratchRate = approachLevel(scratchRate, scratch.rate, frameDelta, drawCfg.scratch.smoothing);
+    scratchVoice.set({ gain: scratchGain, rate: scratchRate });
+    dust.update(drawMode.cursor, speed, touching, frameDelta);
+
+    if (drawEvent?.kind === 'cancelled') {
+      dust.clear();
+      resolving = undefined;
+    }
     if (drawEvent?.kind === 'submitted') {
+      resolving = 0;
       // Validate the same quantized strokes the authority will decode, so the
       // instant feedback and the verdict that follows agree. The authority
       // decides; this only removes a round trip from seeing the answer.
@@ -260,7 +288,18 @@ function bootstrap(): void {
       net.sendInteract(target);
     }
     interactWasDown = interactDown;
-    chalkPlane.update(drawMode.planeOpacity, drawMode.strokes, drawMode.cursor);
+    if (resolving !== undefined) {
+      resolving += frameDelta;
+      if (resolving > glowDuration(drawCfg.glow)) resolving = undefined;
+    }
+    chalkPlane.update({
+      opacity: drawMode.planeOpacity,
+      strokes: drawMode.strokes,
+      cursor: drawMode.cursor,
+      dust: dust.particles,
+      dustCount: dust.aliveCount,
+      glow: resolving === undefined ? 0 : glowIntensity(resolving, drawCfg.glow),
+    });
     // World, then hands over a cleared depth buffer so they never clip into walls.
     renderer.info.reset();
     renderer.clear();

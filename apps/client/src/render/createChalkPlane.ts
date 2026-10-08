@@ -1,15 +1,19 @@
 import {
   BufferAttribute,
   BufferGeometry,
+  Color,
   DoubleSide,
   DynamicDrawUsage,
   Group,
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
+  Points,
+  PointsMaterial,
   type Scene,
 } from 'three';
-import type { Stroke as ChalkStroke } from '@chalkbound/shared';
+import type { Point2, Stroke as ChalkStroke } from '@chalkbound/shared';
+import type { DustParticle } from '../drawing/DustField';
 
 export interface ChalkPlaneConfig {
   /** Distance ahead of the viewmodel camera, metres. */
@@ -20,16 +24,33 @@ export interface ChalkPlaneConfig {
   readonly margin: number;
   /** Width of a chalk line, metres. */
   readonly trailWidth: number;
+  /** Size of one dust mote, metres. */
+  readonly dustSize: number;
+  /** Most dust motes drawn at once. */
+  readonly maxDust: number;
+}
+
+/** Everything the plane draws in one frame. */
+export interface ChalkPlaneFrame {
+  /** Plane fade, 0..1. */
+  readonly opacity: number;
+  readonly strokes: readonly ChalkStroke[];
+  readonly cursor: Point2;
+  readonly dust: readonly DustParticle[];
+  readonly dustCount: number;
+  /** Resolve glow, 0..1 (see `drawing/glow.ts`). */
+  readonly glow: number;
 }
 
 export interface ChalkPlane {
-  /** Shows the plane and the trail at `opacity`; hides both at 0. */
-  update(opacity: number, strokes: readonly ChalkStroke[], cursor: { x: number; y: number }): void;
+  update(frame: ChalkPlaneFrame): void;
   dispose(): void;
 }
 
 const SURFACE = 0x1d2b2a;
 const CHALK = 0xf2efe6;
+/** What the chalk brightens to as a sketch resolves. */
+const GLOW = 0xbff4ff;
 /** Vertices per trail segment: each is a quad of two triangles. */
 const VERTS_PER_SEGMENT = 6;
 
@@ -83,6 +104,29 @@ export function createChalkPlane(
   trail.frustumCulled = false;
   group.add(trail);
 
+  // Falling chalk dust. Vertex colours carry each mote's fade, so one draw
+  // call covers the whole field.
+  const dustPositions = new Float32Array(config.maxDust * 3);
+  const dustColors = new Float32Array(config.maxDust * 3);
+  const dustGeometry = new BufferGeometry();
+  const dustPositionAttribute = new BufferAttribute(dustPositions, 3);
+  const dustColorAttribute = new BufferAttribute(dustColors, 3);
+  dustPositionAttribute.setUsage(DynamicDrawUsage);
+  dustColorAttribute.setUsage(DynamicDrawUsage);
+  dustGeometry.setAttribute('position', dustPositionAttribute);
+  dustGeometry.setAttribute('color', dustColorAttribute);
+  const dustMaterial = new PointsMaterial({
+    size: config.dustSize,
+    sizeAttenuation: true,
+    transparent: true,
+    depthWrite: false,
+    vertexColors: true,
+  });
+  const dustPoints = new Points(dustGeometry, dustMaterial);
+  dustPoints.position.z = 0.003;
+  dustPoints.frustumCulled = false;
+  group.add(dustPoints);
+
   const cursorMaterial = new MeshBasicMaterial({ color: CHALK, transparent: true });
   const cursorDot = new Mesh(
     new PlaneGeometry(config.trailWidth * 1.6, config.trailWidth * 1.6),
@@ -91,19 +135,40 @@ export function createChalkPlane(
   cursorDot.position.z = 0.002;
   group.add(cursorDot);
 
-  return {
-    update(opacity, strokes, cursor) {
-      group.visible = opacity > 0;
-      if (!group.visible) return;
-      surfaceMaterial.opacity = opacity * 0.55;
-      trailMaterial.opacity = opacity;
-      cursorMaterial.opacity = opacity;
-      cursorDot.position.x = cursor.x;
-      cursorDot.position.y = cursor.y;
+  const chalkColor = new Color(CHALK);
+  const glowColor = new Color(GLOW);
+  const trailColor = new Color();
 
-      const written = writeTrail(positions, strokes, config.trailWidth / 2, maxPoints);
+  return {
+    update(frame) {
+      const { opacity, glow } = frame;
+      // The glow outlives the plane's own fade: the sketch keeps burning for a
+      // moment after the board has gone.
+      group.visible = opacity > 0 || glow > 0;
+      if (!group.visible) return;
+
+      surfaceMaterial.opacity = opacity * 0.55;
+      cursorMaterial.opacity = opacity;
+      cursorDot.position.x = frame.cursor.x;
+      cursorDot.position.y = frame.cursor.y;
+
+      trailMaterial.opacity = Math.min(1, Math.max(opacity, glow));
+      trailMaterial.color.copy(trailColor.copy(chalkColor).lerp(glowColor, glow));
+
+      const written = writeTrail(positions, frame.strokes, config.trailWidth / 2, maxPoints);
       positionAttribute.needsUpdate = true;
       trailGeometry.setDrawRange(0, written);
+
+      const motes = writeDust(
+        dustPositions,
+        dustColors,
+        frame.dust,
+        Math.min(frame.dustCount, config.maxDust),
+      );
+      dustPositionAttribute.needsUpdate = true;
+      dustColorAttribute.needsUpdate = true;
+      dustMaterial.opacity = opacity;
+      dustGeometry.setDrawRange(0, motes);
     },
     dispose() {
       group.removeFromParent();
@@ -111,6 +176,8 @@ export function createChalkPlane(
       surfaceMaterial.dispose();
       trailGeometry.dispose();
       trailMaterial.dispose();
+      dustGeometry.dispose();
+      dustMaterial.dispose();
       cursorDot.geometry.dispose();
       cursorMaterial.dispose();
     },
@@ -184,4 +251,32 @@ function quad(
     out[offset++] = 0;
   }
   return start + VERTS_PER_SEGMENT;
+}
+
+/**
+ * Lays the live dust into the point buffers, returning how many were written.
+ * Each mote's fade rides in its vertex colour, which keeps the whole field to
+ * one draw call.
+ */
+export function writeDust(
+  positions: Float32Array,
+  colors: Float32Array,
+  dust: readonly DustParticle[],
+  count: number,
+): number {
+  let written = 0;
+  for (let i = 0; i < count; i++) {
+    const particle = dust[i];
+    if (!particle) break;
+    const o = written * 3;
+    positions[o] = particle.x;
+    positions[o + 1] = particle.y;
+    positions[o + 2] = 0;
+    const fade = Math.min(1, Math.max(0, particle.alpha));
+    colors[o] = fade;
+    colors[o + 1] = fade;
+    colors[o + 2] = fade;
+    written++;
+  }
+  return written;
 }

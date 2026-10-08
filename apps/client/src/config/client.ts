@@ -91,7 +91,40 @@ export const CLIENT_CONFIG = {
       margin: 0.06,
       /** Chalk trail width, metres. */
       trailWidth: 0.012,
+      /** Size of one dust mote, metres. */
+      dustSize: 0.005,
+      /** Draw budget for dust; the field's own pool is the real limit. */
+      maxDust: 256,
     },
+    /**
+     * The scratch loop (SPEC §14, D-02). All [PLACEHOLDER]: this is the
+     * sound that tells the drawer the stroke registered *and* tells everyone
+     * nearby they are standing still, so it is tuned by playing.
+     */
+    scratch: {
+      minSpeed: 0.02,
+      fullSpeed: 0.6,
+      maxGain: 0.35,
+      minRate: 0.7,
+      maxRate: 1.6,
+      smoothing: 0.05,
+      voice: { centreHz: 2400, q: 1.6, lowpassHz: 7000, loopSeconds: 2 },
+    },
+    /** Chalk dust at the cursor. [PLACEHOLDER] */
+    dust: {
+      maxParticles: 256,
+      emitRate: 110,
+      fullSpeed: 0.6,
+      lifeSeconds: 0.7,
+      gravity: 0.35,
+      scatter: 0.05,
+    },
+    /**
+     * The resolve glow. The attack plus the hold must outlast a realistic
+     * round trip, or the verdict lands after the sketch has gone dark
+     * (SPEC_AUDIT R-03). [PLACEHOLDER]
+     */
+    glow: { attackSeconds: 0.08, holdSeconds: 0.22, decaySeconds: 0.35 },
   },
   /** Aiming at world objects for the interact prompt (Phase 2 T5). */
   targeting: {
