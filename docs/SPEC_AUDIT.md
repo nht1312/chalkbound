@@ -931,6 +931,22 @@ outstanding — together with the T6 feel pass.
 
 ---
 
+### D-13 — Phase 3 Codex decisions (T9) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | The diagram is generated from `reference` | Not drawn by hand as SVG art | The classifier measures template distance against that same path, so the shape the Codex teaches and the shape the game accepts cannot drift. It was the reason D-07 (b) put `reference` on the blueprint in the first place |
+| b | Aspect is preserved, never stretched to fill | Uniform scale on the longer axis, centred on the other | Aspect is one of the things the validator measures. A diagram stretched to fill its box would teach a shape the game then rejects |
+| c | Stroke numbers sit outward from the centre | Each number is offset from its stroke's start, away from the middle of the diagram | Keeps the number off the line it is numbering without hand-placing labels per blueprint |
+| d | Unknown chalk is unaffordable | Before the first snapshot every entry reads as unaffordable | Same rule as D-10 (h): unknown must not mean allowed. The Codex's job is to stop a player starting a sketch they cannot pay for |
+| e | Names live client-side, shared | `drawing/blueprintNames.ts`, used by both the Codex and the failure messages | The authority ships ids, not copy (D-08 f). One table means the part a failure complains about is the part the Codex named |
+| f | Tab is bound only under pointer lock | `InputState` already gates and preventDefaults bound codes while locked | Tab otherwise walks the browser's focus ring out of the canvas, which is the one thing drawing must never do (RD-08) |
+
+**Not verified.** The overlay is DOM and SVG: the diagram geometry and the
+affordability rule are covered, the rendering is not.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

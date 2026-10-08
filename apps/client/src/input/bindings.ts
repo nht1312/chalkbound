@@ -8,7 +8,8 @@ export type Action =
   | 'Sprint'
   | 'Interact'
   | 'Draw'
-  | 'Attack';
+  | 'Attack'
+  | 'Codex';
 
 /** Input codes: `KeyboardEvent.code` values, or `Mouse<button>` for mouse buttons. */
 export type InputCode = string;
@@ -28,6 +29,9 @@ export const DEFAULT_BINDINGS: Bindings = {
   // Hold RMB to raise the chalk (ROADMAP vertical slice).
   Draw: ['Mouse2'],
   Attack: ['Mouse0'],
+  // Hold to read the Codex (SPEC §6.4: glanceable in-match). Bound while
+  // pointer-locked, so Tab never reaches the browser's focus ring.
+  Codex: ['Tab'],
 };
 
 export function mouseButtonCode(button: number): InputCode {

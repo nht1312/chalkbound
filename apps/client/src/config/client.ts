@@ -126,6 +126,8 @@ export const CLIENT_CONFIG = {
      */
     glow: { attackSeconds: 0.08, holdSeconds: 0.22, decaySeconds: 0.35 },
   },
+  /** The Codex overlay (Phase 3 T9). Units are the SVG viewBox, not pixels. */
+  codex: { size: 100, padding: 14, labelOffset: 9 },
   /** Aiming at world objects for the interact prompt (Phase 2 T5). */
   targeting: {
     /** The authority's reach, so the prompt never offers what the server will refuse. */

@@ -5,6 +5,7 @@ import type {
   FailureCode,
   Quality,
 } from '@chalkbound/shared';
+import { blueprintName, blueprintParts } from '../drawing/blueprintNames';
 
 /**
  * Turning a verdict into words (plan T7, SPEC §15).
@@ -28,16 +29,10 @@ export interface DrawingMessage {
   readonly cost: string;
 }
 
-const BLUEPRINT_NAMES: Record<BlueprintId, string> = { sword: 'Sword' };
 const QUALITY_NAMES: Record<Quality, string> = {
   crude: 'Crude',
   sound: 'Sound',
   keen: 'Keen',
-};
-
-/** The parts of each blueprint, in the words the Codex uses. */
-const PART_NAMES: Record<BlueprintId, { readonly main: string; readonly cross: string }> = {
-  sword: { main: 'blade', cross: 'crossguard' },
 };
 
 /**
@@ -64,10 +59,10 @@ const PRIORITY: readonly FailureCode[] = [
 
 /** What one failed constraint means for one blueprint, in the player's words. */
 export function failureDetail(blueprintId: BlueprintId, code: FailureCode): string {
-  const part = PART_NAMES[blueprintId];
+  const part = blueprintParts(blueprintId);
   switch (code) {
     case 'stroke-count':
-      return `A ${BLUEPRINT_NAMES[blueprintId].toLowerCase()} is not that many strokes`;
+      return `A ${blueprintName(blueprintId).toLowerCase()} is not that many strokes`;
     case 'missing-stroke':
       return `The ${part.cross} never arrived`;
     case 'not-straight':
@@ -105,7 +100,7 @@ export function describeDrawingResult(result: DrawingResult): DrawingMessage {
         tone: 'created',
         // Upper case because this is the moment the game tells the player
         // what it decided they made.
-        title: `${BLUEPRINT_NAMES[outcome.blueprintId].toUpperCase()} — ${QUALITY_NAMES[outcome.quality]}`,
+        title: `${blueprintName(outcome.blueprintId).toUpperCase()} — ${QUALITY_NAMES[outcome.quality]}`,
         detail: '',
         cost,
       };
@@ -133,7 +128,7 @@ export function describeDrawingResult(result: DrawingResult): DrawingMessage {
       return {
         tone: 'unaffordable',
         title: 'Not enough chalk',
-        detail: `A ${BLUEPRINT_NAMES[outcome.blueprintId].toLowerCase()} needs ${outcome.required} — you had ${outcome.held}`,
+        detail: `A ${blueprintName(outcome.blueprintId).toLowerCase()} needs ${outcome.required} — you had ${outcome.held}`,
         cost,
       };
   }

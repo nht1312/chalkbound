@@ -190,11 +190,17 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   **The manual check is outstanding** — audio and particles cannot be
   verified headlessly.
 
-- [ ] **T9 — Codex, first pass.**
+- [x] **T9 — Codex, first pass.**
   An overlay, opened by holding Tab, showing every known blueprint: its shape
   drawn from the template's reference path with numbered stroke order, its
   chalk cost, and whether you can afford it (from authoritative chalk).
   *Accept:* tests for affordability and for generating the shape diagram.
+
+  Landed in `client/ui/codex.ts` (`blueprintDiagram`, `codexEntries` and the
+  overlay), a shared `client/drawing/blueprintNames.ts` now used by the
+  failure messages too, and a `Codex` action bound to Tab. The diagram is
+  generated from the blueprint's own `reference` path, so the taught shape
+  and the graded shape cannot drift. Decisions recorded as SPEC_AUDIT D-13.
 
 - [ ] **T10 — Phase 3 exit check.**
   - A headless probe picks up chalk, draws a sword through draw mode and gets

@@ -7,6 +7,7 @@ import {
   FixedStepRunner,
   chalkDebitFor,
   DRAWING,
+  BLUEPRINTS,
   initialPlayerState,
   quantizeInputCommand,
   quantizeSketch,
@@ -42,6 +43,7 @@ import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
 import { createChalkMeter } from './ui/chalkMeter';
 import { createInteractPrompt } from './ui/interactPrompt';
+import { createCodex } from './ui/codex';
 import { createDrawingBanner, describeDrawingResult } from './ui/drawingBanner';
 import { createPauseMenu } from './ui/pauseMenu';
 import { browserSettingsStore, loadSettings, saveSettings } from './ui/settings';
@@ -159,6 +161,8 @@ function bootstrap(): void {
   const chalkMeter = createChalkMeter(root, ECONOMY.chalk.max);
   const drawingBanner = createDrawingBanner(root, drawCfg.bannerHoldSeconds);
   let shownDrawingResults = 0;
+  // Held Tab, so the shapes are glanceable mid-match (SPEC §6.4).
+  const codex = createCodex(root, BLUEPRINTS, CLIENT_CONFIG.codex);
   const prompt = createInteractPrompt(root);
   let interactWasDown = false;
 
@@ -234,6 +238,7 @@ function bootstrap(): void {
       drawingBanner.show(describeDrawingResult(net.drawingResult));
     }
     drawingBanner.update(frameDelta);
+    codex.update(input.isDown('Codex'), net.chalk);
 
     if (predictor && net.authoritativePlayer && net.snapshotCount !== reconciledSnapshots) {
       reconciledSnapshots = net.snapshotCount;
