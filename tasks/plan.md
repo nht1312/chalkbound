@@ -361,14 +361,31 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   scaled. They now read the structure's own `maxHealth`, which is both correct
   and indifferent to how the fixtures are later tuned.
 
-- [ ] **T10 — Drawn objects render.**
+- [x] **T10 — Drawn objects render.**
   Greybox meshes for wall and bridge, the ghost material, quality tinting, and a
   destruction burst. Greybox primitives only — Phases 0–5 import no art.
   *Accept:* mesh lifecycle tests (spawned, ghosted, confirmed, destroyed, with
   no leaked meshes); a manual check for how the three qualities read apart.
 
-  *Depends on:* T7, T9. *Files:* `client/render/createDrawnObjects.ts`,
-  `client/drawing/DrawnObjects.ts` + tests. *Scope:* M.
+  *Depends on:* T7b, T9. *Files:* `client/render/createDrawnObjects.ts`,
+  `client/main.ts` + tests. *Scope:* M.
+
+  **Landed.** The lifecycle is the whole job here: unlike the level, which is
+  built once and kept, these appear and vanish mid-match, so every test is
+  about a mesh being built once, freed once and never left behind.
+
+  A destroyed structure settles and fades rather than blinking out. The loop
+  ends in *loss* (CLAUDE.md §25), and a wall that simply vanished would spend
+  that moment on nothing. It is a greybox stand-in: `DustField` is plane-space,
+  tied to the chalk plane, so there was nothing to reuse for a world-space
+  burst and building one was not worth it before Phase 6.
+
+  Two earlier tests had to be tightened rather than the code changed: they
+  counted every mesh the view owned, and a collapse is also a mesh it owns.
+  They now ask what is *standing*, which is what they always meant.
+
+  **The manual check is outstanding** — how the three quality bands read apart
+  cannot be judged headlessly.
 
 - [ ] **T11 — Phase 4 exit check.**
   A headless probe draws all three blueprints end to end: the sword equips, the

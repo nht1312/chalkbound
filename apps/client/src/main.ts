@@ -22,6 +22,7 @@ import {
 import { CLIENT_CONFIG } from './config/client';
 import { DrawnObjects } from './drawing/DrawnObjects';
 import { createHeldWeapon } from './hands/heldWeapon';
+import { createDrawnObjectsView } from './render/createDrawnObjects';
 import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
 import { FppCamera } from './camera/FppCamera';
 import { createViewmodel } from './hands/createViewmodel';
@@ -75,6 +76,7 @@ function bootstrap(): void {
   const { renderer } = createRenderer(canvas, [camera, viewmodel.camera], CLIENT_CONFIG.render);
   const scene = createTestScene(level);
   const chalkBoxes = createChalkBoxes(scene, level.chalkBoxes);
+  const drawnObjectsView = createDrawnObjectsView(scene);
 
   // Authority behind a loopback link (ARCHITECTURE D-01); Phase 8 swaps in a socket.
   const link = linkConditionsFromUrl(window.location.search);
@@ -295,6 +297,8 @@ function bootstrap(): void {
     feel = updateCameraFeel(feel, movement, frameDelta, feelCfg);
     handRig = updateHandRig(handRig, movement, frameDelta, CLIENT_CONFIG.hands.rig);
     heldWeapon.update(net.equipped);
+    drawnObjectsView.update(drawn.solid(), drawn.ghosts());
+    drawnObjectsView.advance(frameDelta);
     viewmodel.apply(handTransforms(handRig, feel.bobPhase, CLIENT_CONFIG.hands.rig));
     const bob = bobOffset(feel, feelCfg);
     // Sway along the camera's right axis (yaw only).
