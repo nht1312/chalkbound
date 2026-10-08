@@ -2,7 +2,10 @@ import { DRAWING } from '../config/drawing';
 import { ECONOMY } from '../config/economy';
 import { NETWORK } from '../config/network';
 import { FIXED_DT } from '../config/simulation';
-import type { BlueprintId } from '../drawing/blueprint';
+import type { BlueprintId, Quality } from '../drawing/blueprint';
+import { blueprintById } from '../drawing/blueprints/registry';
+import type { DrawnObject, DrawnStructure, DrawnWeapon } from '../drawing/drawnObject';
+import { spawnDrawnObject } from '../drawing/spawn';
 import { chalkDebitFor, toDrawingResultOutcome, type DrawingResult } from '../drawing/result';
 import type { Sketch } from '../drawing/types';
 import { validateSketch } from '../drawing/validate';
@@ -69,6 +72,17 @@ interface SimPlayer {
   chalk: number;
   /** Tick of the last *accepted* drawing, for rate limiting. */
   lastDrawingTick: number;
+  /**
+   * Yaw of the newest command applied. Placement needs the facing the
+   * authority believes in, not one the client asserts at submission time.
+   */
+  yaw: number;
+  /**
+   * The one weapon in the player's hands (SPEC §6.8). Weapons never enter
+   * the inventory: putting a step between the drawing and the holding would
+   * waste the moment the whole design is built around.
+   */
+  equipped: DrawnWeapon | undefined;
 }
 
 /**
@@ -85,6 +99,13 @@ export class MatchSimulation {
   private readonly players = new Map<PlayerId, SimPlayer>();
   private readonly world: PhysicsWorld;
   private readonly chalkBoxes = new Map<number, ChalkBox>();
+  /**
+   * Structures drawn into the world. They are keyed by id and outlive the
+   * players who drew them (SPEC §7.4) — a wall is the world's, not its
+   * author's, which is where the contested play comes from.
+   */
+  private readonly structures = new Map<number, DrawnStructure>();
+  private nextObjectId = 1;
 
   /**
    * Submissions whose client-side hint named something other than what the
@@ -118,6 +139,8 @@ export class MatchSimulation {
       queue: [],
       chalk: ECONOMY.chalk.starting,
       lastDrawingTick: Number.NEGATIVE_INFINITY,
+      yaw: 0,
+      equipped: undefined,
     });
   }
 
@@ -142,6 +165,16 @@ export class MatchSimulation {
   }
 
   /** Every chalk box and what it holds, in level order. */
+  /** Every structure standing in the world right now. */
+  drawnObjects(): readonly DrawnStructure[] {
+    return [...this.structures.values()];
+  }
+
+  /** What `id` is holding, if anything. */
+  equipped(id: PlayerId): DrawnWeapon | undefined {
+    return this.players.get(id)?.equipped;
+  }
+
   chalkBoxStates(): { readonly id: number; readonly remaining: number }[] {
     return [...this.chalkBoxes.values()].map((box) => ({
       id: box.spawn.id,
@@ -207,7 +240,44 @@ export class MatchSimulation {
 
     const chalkDebited = chalkDebitFor(outcome, player.chalk);
     player.chalk -= chalkDebited;
+    // Debit first, then build: cost is a property of what was recognized, so
+    // it cannot be known any earlier, and there is never a refund path.
+    if (outcome.kind === 'created') this.build(id, player, outcome.blueprintId, outcome);
     return { kind: 'resolved', result: { outcome, chalkDebited } };
+  }
+
+  /**
+   * Turns a `created` outcome into a thing in the world or in a hand. Nothing
+   * here can fail: placement never refuses (plan decision 1), because the
+   * chalk is already spent by the time it runs.
+   */
+  private build(
+    id: PlayerId,
+    player: SimPlayer,
+    blueprintId: BlueprintId,
+    grade: { readonly quality: Quality; readonly accuracy: number },
+  ): DrawnObject | undefined {
+    const blueprint = blueprintById(blueprintId);
+    if (!blueprint) return undefined;
+
+    const object = spawnDrawnObject(
+      blueprint,
+      { quality: grade.quality, accuracy: grade.accuracy },
+      {
+        id: this.nextObjectId++,
+        tick: this.currentTick,
+        playerId: id,
+        feet: player.state.position,
+        yaw: player.yaw,
+      },
+    );
+
+    if (object.kind === 'structure') this.structures.set(object.id, object);
+    // One pair of hands, one sword (plan decision 5). The replaced weapon is
+    // destroyed rather than dropped: dropping needs a world-item form that
+    // nothing else in the MVP wants yet.
+    else player.equipped = object;
+    return object;
   }
 
   /**
@@ -240,6 +310,7 @@ export class MatchSimulation {
         const command = player.queue.shift();
         if (!command) break;
         player.state = stepPlayer(player.state, command, player.body, this.world, FIXED_DT);
+        player.yaw = command.yaw;
         player.lastProcessedSeq = command.seq;
       }
     }

@@ -358,6 +358,111 @@ describe('MatchSimulation drawing submissions', () => {
     });
   });
 
+  /**
+   * Phase 4: a `created` outcome stops being only a debit. The authority
+   * builds the object too, and where it goes depends on what it is — weapons
+   * to the hands, structures to the world (SPEC §6.8, §7.4).
+   */
+  describe('building what was drawn', () => {
+    it('builds nothing at all unless the sketch was created', () => {
+      for (const sketch of [SMUDGE_SKETCH, SCRIBBLE_SKETCH]) {
+        const sim = drawSim(ECONOMY.chalk.perBox);
+        resolve(sim.submitDrawing(1, sketch));
+        expect(sim.drawnObjects()).toEqual([]);
+        expect(sim.equipped(1)).toBeUndefined();
+      }
+    });
+
+    it('builds nothing from a blueprint the player cannot pay for', () => {
+      const sim = drawSim(ECONOMY.blueprintCost.wall + 3);
+      expect(resolve(sim.submitDrawing(1, BRIDGE_SKETCH)).outcome.kind).toBe('unaffordable');
+      expect(sim.drawnObjects()).toEqual([]);
+    });
+
+    it('puts a drawn sword straight into the hands, not into the world', () => {
+      const sim = drawSim(ECONOMY.chalk.perBox);
+      resolve(sim.submitDrawing(1, SWORD_SKETCH));
+      expect(sim.drawnObjects()).toEqual([]);
+      const sword = sim.equipped(1);
+      expect(sword?.blueprintId).toBe('sword');
+      expect(sword?.durability).toBeGreaterThan(0);
+    });
+
+    it.each([['wall'], ['bridge']] as const)('puts a drawn %s into the world', (id) => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, id === 'wall' ? WALL_SKETCH : BRIDGE_SKETCH));
+      const [built] = sim.drawnObjects();
+      expect(built?.blueprintId).toBe(id);
+      expect(built?.kind).toBe('structure');
+      expect(sim.equipped(1)).toBeUndefined();
+    });
+
+    it('stamps what it builds with the tick it became real (R-03)', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      for (let i = 0; i < 7; i++) sim.step();
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      expect(sim.drawnObjects()[0]?.solidFromTick).toBe(sim.tick);
+    });
+
+    it('gives every object its own id, so nothing can be confused for another', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      const ids: number[] = [];
+      for (const sketch of [WALL_SKETCH, BRIDGE_SKETCH, WALL_SKETCH]) {
+        for (let i = 0; i < RATE_LIMIT_TICKS; i++) sim.step();
+        const outcome = resolve(sim.submitDrawing(1, sketch)).outcome;
+        if (outcome.kind === 'created') ids.push(sim.drawnObjects().at(-1)?.id ?? -1);
+      }
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    /**
+     * SPEC §7.4: structures belong to the world and remain after the drawer
+     * dies or extracts; weapons are carried and leave with their owner. This
+     * is where the emergent play lives, so it is asserted rather than assumed.
+     */
+    it('leaves a structure standing after the player who drew it has gone', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      sim.removePlayer(1);
+      expect(sim.drawnObjects()).toHaveLength(1);
+    });
+
+    it('takes a weapon with the player who drew it', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, SWORD_SKETCH));
+      expect(sim.equipped(1)).toBeDefined();
+      sim.removePlayer(1);
+      expect(sim.equipped(1)).toBeUndefined();
+    });
+
+    /** One pair of hands, one sword (plan decision 5). */
+    it('replaces a held sword with a newly drawn one', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, SWORD_SKETCH));
+      const first = sim.equipped(1);
+      for (let i = 0; i < RATE_LIMIT_TICKS; i++) sim.step();
+      resolve(sim.submitDrawing(1, SWORD_SKETCH));
+      const second = sim.equipped(1);
+      expect(second).toBeDefined();
+      expect(second?.id).not.toBe(first?.id);
+      // The replaced sword is destroyed, not dropped into the world.
+      expect(sim.drawnObjects()).toEqual([]);
+    });
+
+    it('builds a structure ahead of the player, facing them', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      const spawn = sim.playerState(1)?.position;
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      const [wall] = sim.drawnObjects();
+      if (wall?.kind !== 'structure' || !spawn) throw new Error('expected a wall');
+      const away = Math.hypot(
+        wall.transform.position.x - spawn.x,
+        wall.transform.position.z - spawn.z,
+      );
+      expect(away).toBeGreaterThan(MOVEMENT.capsule.radius);
+    });
+  });
+
   it('never takes more chalk than the player holds', () => {
     const sim = drawSim(2);
     const result = resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));

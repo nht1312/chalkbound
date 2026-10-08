@@ -192,7 +192,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   scales stats uniformly for every blueprint, never dimensions (decision 6),
   so the flag was both unused and misnamed. Decision to record as D-18.
 
-- [ ] **T4 — The authority spawns on `created`.**
+- [x] **T4 — The authority spawns on `created`.**
   `MatchSimulation` gains the drawn-object store. A `created` outcome now debits
   **and** spawns: structures into the world, a weapon into the player's
   `equipped` slot (decision 4), each stamped with the current tick. Weapons
@@ -205,6 +205,13 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   - `solidFromTick` equals the tick of the submission that created it.
 
   *Depends on:* T3. *Files:* `sim/MatchSimulation.ts` + test. *Scope:* M.
+
+  **Landed.** `SimPlayer` gained an `equipped` slot and a `yaw`: placement
+  needs the facing the *authority* believes in, taken from the newest command
+  it applied, rather than one the client asserts at submission time. Debiting
+  still happens before building, so the order the spec locks — classify,
+  grade, debit — is untouched and no test of it changed. Structures outlive
+  `removePlayer`; a weapon goes with the hands that held it.
 
 - [ ] **T5 — Structures bear collision.**
   A `Drawn` collision group, and colliders created and removed on the Rapier
