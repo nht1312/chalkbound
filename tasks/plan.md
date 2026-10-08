@@ -164,7 +164,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   new test passed on first run, each was mutation-checked by removing the
   bridge from the registry: all four fail without it, so none is vacuous.
 
-- [ ] **T3 — The drawn-object model and placement (shared, no wiring).**
+- [x] **T3 — The drawn-object model and placement (shared, no wiring).**
   `DrawnObject` — id, blueprint, kind, transform, quality, accuracy, health or
   durability, `solidFromTick`, and the drawer's id for attribution only.
   `SpawnRegistry` resolves a `SpawnDescriptor` plus an outcome into one, and is
@@ -176,7 +176,21 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   registering an unknown descriptor kind is a typed error, not a silent default.
 
   *Depends on:* T1. *Files:* `drawing/drawnObject.ts`, `drawing/spawn.ts`,
-  `drawing/placement.ts` + tests. *Scope:* M.
+  `drawing/placement.ts`, `config/creation.ts` + tests. *Scope:* M.
+
+  **Landed.** Weapons and structures are separate types rather than one type
+  with optional fields, so the compiler refuses giving a wall durability or
+  asking a sword where it stands. `placement.ts` takes a position and an angle
+  rather than a `PlayerState`, which keeps `drawing/` free of any dependency
+  on `sim/`. Distance is measured to the object's *near face*, so a four-metre
+  bridge deck and a hand's-width wall both begin the same step ahead instead
+  of the deck swallowing the drawer.
+
+  Phase 3's `scaleFromAccuracy` flag on `SpawnDescriptor` was **removed**
+  rather than wired up. It was declared, set three times and read nowhere, and
+  its own comment deferred it to this registry. Phase 4 resolves it: quality
+  scales stats uniformly for every blueprint, never dimensions (decision 6),
+  so the flag was both unused and misnamed. Decision to record as D-18.
 
 - [ ] **T4 — The authority spawns on `created`.**
   `MatchSimulation` gains the drawn-object store. A `created` outcome now debits

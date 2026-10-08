@@ -7,6 +7,7 @@ export { ECONOMY } from './config/economy';
 export { INVENTORY } from './config/inventory';
 export { INTERACTION } from './config/interaction';
 export { DRAWING } from './config/drawing';
+export { CREATION } from './config/creation';
 
 export {
   advanceFixedTimestep,
@@ -148,6 +149,24 @@ export type {
 } from './drawing/blueprint';
 export { BLUEPRINTS, blueprintById } from './drawing/blueprints/registry';
 export { SWORD } from './drawing/blueprints/sword';
+export { WALL } from './drawing/blueprints/wall';
+export { BRIDGE } from './drawing/blueprints/bridge';
+export {
+  damage,
+  isDestroyed,
+  scaledStat,
+  type DrawnObject,
+  type DrawnObjectId,
+  type DrawnStructure,
+  type DrawnWeapon,
+} from './drawing/drawnObject';
+export {
+  forwardFromYaw,
+  placeStructure,
+  type DrawnTransform,
+  type Footprint,
+} from './drawing/placement';
+export { spawnDrawnObject, type SpawnGrade, type SpawnRequest } from './drawing/spawn';
 export { classify, type CandidateScore, type Classification } from './drawing/classify';
 export {
   grade,

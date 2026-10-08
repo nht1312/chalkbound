@@ -14,12 +14,21 @@ export type Quality = 'crude' | 'sound' | 'keen';
  */
 export type RejectionReason = 'below-floor' | 'ambiguous';
 
-/** What a recognized blueprint turns into. Resolved by the Phase 4 spawn registry. */
+/**
+ * What a recognized blueprint turns into. `kind` chooses the construction in
+ * the spawn registry, and that switch is exhaustive — a new kind is a compile
+ * error rather than a sketch that quietly builds nothing.
+ *
+ * Phase 3 also carried a `scaleFromAccuracy` flag here, pending this registry.
+ * Phase 4 resolved it and removed it: quality scales an object's *stats*,
+ * uniformly, for every blueprint (plan decision 6). It never scales
+ * dimensions, and it keys off the quality band rather than raw accuracy, so
+ * the flag was both unused and misnamed.
+ */
 export interface SpawnDescriptor {
   readonly kind: 'weapon' | 'structure';
   /** Asset name per CLAUDE.md §13. */
   readonly asset: string;
-  readonly scaleFromAccuracy: boolean;
 }
 
 /**

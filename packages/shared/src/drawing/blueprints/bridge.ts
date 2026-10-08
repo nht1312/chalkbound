@@ -62,5 +62,5 @@ export const BRIDGE: BlueprintTemplate = {
     humanLikeness(),
   ],
 
-  spawn: { kind: 'structure', asset: 'CB_DRAWN_Bridge_A', scaleFromAccuracy: false },
+  spawn: { kind: 'structure', asset: 'CB_DRAWN_Bridge_A' },
 };

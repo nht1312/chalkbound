@@ -56,5 +56,5 @@ export const WALL: BlueprintTemplate = {
     humanLikeness(),
   ],
 
-  spawn: { kind: 'structure', asset: 'CB_DRAWN_Wall_A', scaleFromAccuracy: false },
+  spawn: { kind: 'structure', asset: 'CB_DRAWN_Wall_A' },
 };

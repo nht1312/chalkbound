@@ -53,5 +53,5 @@ export const SWORD: BlueprintTemplate = {
     humanLikeness(),
   ],
 
-  spawn: { kind: 'weapon', asset: 'CB_WEAPON_Sword_A', scaleFromAccuracy: true },
+  spawn: { kind: 'weapon', asset: 'CB_WEAPON_Sword_A' },
 };
