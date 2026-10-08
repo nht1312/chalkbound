@@ -1,13 +1,19 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { DRAWING } from '../config/drawing';
 import { ECONOMY } from '../config/economy';
 import { MOVEMENT } from '../config/movement';
 import { NETWORK } from '../config/network';
 import { FIXED_DT } from '../config/simulation';
+import { CORPUS } from '../drawing/fixtures';
+import { toDrawingResultOutcome, type DrawingResult } from '../drawing/result';
+import type { Sketch } from '../drawing/types';
+import { validateSketch } from '../drawing/validate';
+import { quantizeSketch } from '../drawing/wire';
 import { vec3 } from '../math/vec';
 import type { InputCommand } from '../protocol/messages';
 import type { LevelData } from '../world/greyboxRoom';
-import { MatchSimulation } from './MatchSimulation';
+import { MatchSimulation, type DrawingSubmissionResult } from './MatchSimulation';
 
 beforeAll(async () => {
   await RAPIER.init();
@@ -238,5 +244,159 @@ describe('MatchSimulation chalk', () => {
     sim.submitInputs(1, commands(1, 32, { moveZ: 1, moveX: 1 }));
     for (let i = 0; i < 40; i++) sim.step();
     expect(sim.chalk(1)).toBe(ECONOMY.chalk.perBox);
+  });
+});
+
+describe('MatchSimulation drawing submissions', () => {
+  const sketchNamed = (name: string): Sketch => {
+    const found = CORPUS.find((f) => f.name === name);
+    if (!found) throw new Error(`No fixture named ${name}`);
+    return found.sketch;
+  };
+  const SWORD_SKETCH = sketchNamed('sword-clean');
+  const SMUDGE_SKETCH = sketchNamed('sword-shaky-blade');
+  const SCRIBBLE_SKETCH = sketchNamed('scribble');
+
+  const SMUDGE_COST = Math.ceil(ECONOMY.blueprintCost.sword * ECONOMY.smudgedCostFraction);
+  const RATE_LIMIT_TICKS = Math.ceil((DRAWING.minSubmitIntervalMs / 1000) * TICKS_PER_SECOND);
+
+  /** A player standing on a box holding exactly `chalk`, already picked up. */
+  function drawSim(chalk: number): MatchSimulation {
+    const sim = new MatchSimulation(RAPIER, {
+      ...level,
+      chalkBoxes: [{ id: 1, position: vec3(0, 1.2, -1), amount: Math.max(chalk, 1) }],
+    });
+    sim.addPlayer(1);
+    if (chalk > 0) sim.interact(1, 1);
+    return sim;
+  }
+
+  /** The resolved result, or a failure naming what was refused instead. */
+  function resolve(submission: DrawingSubmissionResult): DrawingResult {
+    if (submission.kind !== 'resolved') throw new Error(`Refused: ${submission.reason}`);
+    return submission.result;
+  }
+
+  it('debits the full blueprint cost for a sword it created', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    const result = resolve(sim.submitDrawing(1, SWORD_SKETCH));
+    expect(result.outcome.kind).toBe('created');
+    expect(result.chalkDebited).toBe(ECONOMY.blueprintCost.sword);
+    expect(sim.chalk(1)).toBe(ECONOMY.chalk.perBox - ECONOMY.blueprintCost.sword);
+  });
+
+  it('debits a quarter of the blueprint for a smudge', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    const result = resolve(sim.submitDrawing(1, SMUDGE_SKETCH));
+    expect(result.outcome.kind).toBe('smudged');
+    expect(result.chalkDebited).toBe(SMUDGE_COST);
+    expect(sim.chalk(1)).toBe(ECONOMY.chalk.perBox - SMUDGE_COST);
+  });
+
+  it('debits the flat rate for a sketch it could not read', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    const result = resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));
+    expect(result.outcome.kind).toBe('unrecognized');
+    expect(result.chalkDebited).toBe(ECONOMY.unrecognizedCost);
+    expect(sim.chalk(1)).toBe(ECONOMY.chalk.perBox - ECONOMY.unrecognizedCost);
+  });
+
+  it('debits the flat rate for a good sword the player cannot pay for', () => {
+    const held = ECONOMY.blueprintCost.sword - 1;
+    const sim = drawSim(held);
+    const result = resolve(sim.submitDrawing(1, SWORD_SKETCH));
+    expect(result.outcome).toMatchObject({
+      kind: 'unaffordable',
+      required: ECONOMY.blueprintCost.sword,
+      held,
+    });
+    expect(result.chalkDebited).toBe(ECONOMY.unaffordableCost);
+    expect(sim.chalk(1)).toBe(held - ECONOMY.unaffordableCost);
+  });
+
+  it('never takes more chalk than the player holds', () => {
+    const sim = drawSim(2);
+    const result = resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));
+    expect(ECONOMY.unrecognizedCost).toBeGreaterThan(2);
+    expect(result.chalkDebited).toBe(2);
+    expect(sim.chalk(1)).toBe(0);
+  });
+
+  it('ignores a submission from a player holding nothing', () => {
+    const sim = drawSim(0);
+    expect(sim.submitDrawing(1, SWORD_SKETCH)).toEqual({ kind: 'refused', reason: 'no-chalk' });
+    expect(sim.chalk(1)).toBe(0);
+  });
+
+  it('refuses a submission from a player who is not in the match', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    expect(sim.submitDrawing(99, SWORD_SKETCH)).toEqual({
+      kind: 'refused',
+      reason: 'unknown-player',
+    });
+  });
+
+  it('rate-limits a second submission inside the window, at no cost', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));
+    const after = sim.chalk(1);
+    expect(sim.submitDrawing(1, SCRIBBLE_SKETCH)).toEqual({
+      kind: 'refused',
+      reason: 'rate-limited',
+    });
+    expect(sim.chalk(1)).toBe(after);
+  });
+
+  it('accepts the next submission once the window has passed', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));
+    for (let i = 0; i < RATE_LIMIT_TICKS; i++) sim.step();
+    expect(resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH)).outcome.kind).toBe('unrecognized');
+  });
+
+  it('does not let a refused submission push the window further out', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));
+    for (let i = 0; i < RATE_LIMIT_TICKS - 1; i++) sim.step();
+    expect(sim.submitDrawing(1, SCRIBBLE_SKETCH).kind).toBe('refused');
+    sim.step();
+    expect(sim.submitDrawing(1, SCRIBBLE_SKETCH).kind).toBe('resolved');
+  });
+
+  it('reaches the same outcome whatever the client claims it drew', () => {
+    const honest = resolve(drawSim(ECONOMY.chalk.perBox).submitDrawing(1, SCRIBBLE_SKETCH));
+    const lying = resolve(drawSim(ECONOMY.chalk.perBox).submitDrawing(1, SCRIBBLE_SKETCH, 'sword'));
+    expect(lying).toEqual(honest);
+  });
+
+  it('still creates a sword when the client hints at nothing', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    expect(resolve(sim.submitDrawing(1, SWORD_SKETCH)).outcome.kind).toBe('created');
+  });
+
+  it('counts a hint that disagrees with what it recognized', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    sim.submitDrawing(1, SCRIBBLE_SKETCH, 'sword');
+    expect(sim.hintDisagreements).toBe(1);
+    expect(sim.lastHintDisagreement).toEqual({ hint: 'sword', recognized: undefined });
+  });
+
+  it('counts nothing when the hint agrees, or when there is no hint', () => {
+    const agreeing = drawSim(ECONOMY.chalk.perBox);
+    agreeing.submitDrawing(1, SWORD_SKETCH, 'sword');
+    expect(agreeing.hintDisagreements).toBe(0);
+
+    const silent = drawSim(ECONOMY.chalk.perBox);
+    silent.submitDrawing(1, SCRIBBLE_SKETCH);
+    expect(silent.hintDisagreements).toBe(0);
+  });
+
+  it('grades the quantized sketch, so it agrees with the client that sent it', () => {
+    const sim = drawSim(ECONOMY.chalk.perBox);
+    const result = resolve(sim.submitDrawing(1, SWORD_SKETCH));
+    const local = validateSketch(quantizeSketch(SWORD_SKETCH), {
+      heldChalk: ECONOMY.chalk.perBox,
+    });
+    expect(result.outcome).toEqual(toDrawingResultOutcome(local));
   });
 });

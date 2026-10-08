@@ -108,7 +108,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   is 140 bytes of sketch, 142 on the wire. Decisions recorded as
   SPEC_AUDIT D-08.
 
-- [ ] **T5 — Authority: drawing submissions.**
+- [x] **T5 — Authority: drawing submissions.**
   `MatchSimulation.submitDrawing()` validates against the player's chalk and
   debits per outcome (SPEC §6.6, capped). It rate-limits, ignores players with 0
   chalk, and counts and logs hint disagreements. The host routes
@@ -118,6 +118,13 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   - the hint never changes the outcome;
   - rate-limited and empty-handed submissions are rejected;
   - a loopback test of the full round trip.
+
+  Landed in `sim/MatchSimulation.ts` (`submitDrawing`, the `lastDrawingTick`
+  rate limit, and the hint-disagreement counters), `sim/SimulationHost.ts`
+  (routing, and a reliability parameter on `send`), and `chalkCostOf` /
+  `chalkDebitFor` in `drawing/result.ts`. Disagreements are **counted, not
+  logged**: `shared` has no logger, so surfacing them is the host app's job.
+  Decisions recorded as SPEC_AUDIT D-09.
 
 - [ ] **T6 — Client draw mode.**
   - Holding RMB enters draw mode only with chalk > 0.

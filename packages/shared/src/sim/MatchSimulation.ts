@@ -1,6 +1,12 @@
+import { DRAWING } from '../config/drawing';
 import { ECONOMY } from '../config/economy';
 import { NETWORK } from '../config/network';
 import { FIXED_DT } from '../config/simulation';
+import type { BlueprintId } from '../drawing/blueprint';
+import { chalkDebitFor, toDrawingResultOutcome, type DrawingResult } from '../drawing/result';
+import type { Sketch } from '../drawing/types';
+import { validateSketch } from '../drawing/validate';
+import { quantizeSketch } from '../drawing/wire';
 import { createStaticWorld, type PhysicsWorld, type Rapier } from '../physics/staticWorld';
 import type { InputCommand } from '../protocol/messages';
 import type { ChalkBoxSpawn, LevelData } from '../world/greyboxRoom';
@@ -26,6 +32,27 @@ export interface InteractResult {
   readonly taken: number;
 }
 
+/** Why a sketch was never graded. A refusal costs the player nothing. */
+export type DrawingRefusal = 'unknown-player' | 'no-chalk' | 'rate-limited';
+
+/**
+ * Either a verdict to send back, or silence. The two are kept apart in the
+ * type so a caller cannot send a refusal to the client by accident: a refused
+ * submission is the authority declining to answer, not an outcome.
+ */
+export type DrawingSubmissionResult =
+  | { readonly kind: 'resolved'; readonly result: DrawingResult }
+  | { readonly kind: 'refused'; readonly reason: DrawingRefusal };
+
+/** A client's claim about its own sketch that the authority disagreed with. */
+export interface HintDisagreement {
+  readonly hint: BlueprintId | undefined;
+  readonly recognized: BlueprintId | undefined;
+}
+
+/** Ticks between two accepted submissions from one player. */
+const SUBMIT_INTERVAL_TICKS = Math.ceil(DRAWING.minSubmitIntervalMs / 1000 / FIXED_DT);
+
 interface ChalkBox {
   readonly spawn: ChalkBoxSpawn;
   remaining: number;
@@ -38,8 +65,10 @@ interface SimPlayer {
   lastProcessedSeq: number;
   /** Commands accepted but not yet applied, ascending by seq. */
   readonly queue: InputCommand[];
-  /** Authoritative chalk meter; changes only through `interact`. */
+  /** Authoritative chalk meter; changes through `interact` and `submitDrawing`. */
   chalk: number;
+  /** Tick of the last *accepted* drawing, for rate limiting. */
+  lastDrawingTick: number;
 }
 
 /**
@@ -56,6 +85,15 @@ export class MatchSimulation {
   private readonly players = new Map<PlayerId, SimPlayer>();
   private readonly world: PhysicsWorld;
   private readonly chalkBoxes = new Map<number, ChalkBox>();
+
+  /**
+   * Submissions whose client-side hint named something other than what the
+   * authority recognized. Nothing depends on it, and it never changes an
+   * outcome — it is the cheapest signal that the two validators have drifted
+   * apart, which under inference is the failure that matters most.
+   */
+  hintDisagreements = 0;
+  lastHintDisagreement: HintDisagreement | undefined;
 
   constructor(
     private readonly rapier: Rapier,
@@ -79,6 +117,7 @@ export class MatchSimulation {
       lastProcessedSeq: 0,
       queue: [],
       chalk: ECONOMY.chalk.starting,
+      lastDrawingTick: Number.NEGATIVE_INFINITY,
     });
   }
 
@@ -130,6 +169,45 @@ export class MatchSimulation {
     player.chalk = chalk;
     box.remaining -= taken;
     return { outcome: 'picked-up', taken };
+  }
+
+  /**
+   * Grades a submitted sketch and charges for it (SPEC §6.2, §6.6).
+   *
+   * The strokes decide everything. `hint` is the client's own guess, kept
+   * only so a disagreement can be counted: letting it reach the classifier
+   * would hand a client the power to name what it drew, which is the whole
+   * thing server authority exists to prevent.
+   *
+   * The sketch is quantized before grading, so a submission reaching the
+   * authority directly is judged on exactly the same numbers as one that
+   * came over the wire.
+   */
+  submitDrawing(id: PlayerId, sketch: Sketch, hint?: BlueprintId): DrawingSubmissionResult {
+    const player = this.players.get(id);
+    if (!player) return { kind: 'refused', reason: 'unknown-player' };
+    // Drawing needs chalk in hand (plan decision 2); with none there is
+    // nothing to charge and nothing to say.
+    if (player.chalk <= 0) return { kind: 'refused', reason: 'no-chalk' };
+    if (this.currentTick - player.lastDrawingTick < SUBMIT_INTERVAL_TICKS) {
+      return { kind: 'refused', reason: 'rate-limited' };
+    }
+    player.lastDrawingTick = this.currentTick;
+
+    const outcome = toDrawingResultOutcome(
+      validateSketch(quantizeSketch(sketch), { heldChalk: player.chalk }),
+    );
+    // An absent hint is itself a claim — "I could not read it either" — so a
+    // sketch the authority recognized and the client did not is a disagreement.
+    const recognized = 'blueprintId' in outcome ? outcome.blueprintId : undefined;
+    if (hint !== recognized) {
+      this.hintDisagreements++;
+      this.lastHintDisagreement = { hint, recognized };
+    }
+
+    const chalkDebited = chalkDebitFor(outcome, player.chalk);
+    player.chalk -= chalkDebited;
+    return { kind: 'resolved', result: { outcome, chalkDebited } };
   }
 
   /**

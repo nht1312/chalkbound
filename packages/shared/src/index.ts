@@ -47,6 +47,9 @@ export {
 
 export {
   MatchSimulation,
+  type DrawingRefusal,
+  type DrawingSubmissionResult,
+  type HintDisagreement,
   type InteractOutcome,
   type InteractResult,
   type PlayerId,
@@ -153,6 +156,8 @@ export {
   type ValidateOptions,
 } from './drawing/validate';
 export {
+  chalkCostOf,
+  chalkDebitFor,
   toDrawingResultOutcome,
   type DrawingResult,
   type DrawingResultOutcome,

@@ -62,6 +62,14 @@ export const DRAWING = {
   closureGapRatio: 0.25,
 
   /**
+   * Shortest gap the authority accepts between one player's submissions
+   * (plan decision 5). An anti-flood measure, not a gameplay rule: drawing,
+   * lowering the chalk and raising it again takes far longer than this.
+   * [PLACEHOLDER]
+   */
+  minSubmitIntervalMs: 500,
+
+  /**
    * Wire limits and precision for a submitted sketch (plan T4, decision 5).
    * The limits are a cap on what one player can make the authority decode,
    * not a gameplay rule: a legitimate blueprint is nowhere near any of them.

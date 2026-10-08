@@ -1,5 +1,5 @@
 import { TICKS_PER_SNAPSHOT } from '../config/simulation';
-import type { Transport } from '../net/transport';
+import type { Reliability, Transport } from '../net/transport';
 import { decodeClientMessage, encodeServerMessage, ProtocolError } from '../protocol/codec';
 import type { ClientMessage, ServerMessage } from '../protocol/messages';
 import type { MatchSimulation, PlayerId } from './MatchSimulation';
@@ -71,6 +71,17 @@ export class SimulationHost {
         // The outcome reaches the client through the next snapshot.
         this.sim.interact(id, message.targetId);
         break;
+      case 'drawing': {
+        // A refusal is silence: the client is rate-limited, empty-handed or
+        // gone, and none of those are a verdict on what it drew.
+        const submission = this.sim.submitDrawing(id, message.sketch, message.hint);
+        if (submission.kind === 'resolved') {
+          // Reliable: a lost verdict leaves the player's chalk spent with
+          // nothing on screen to explain it.
+          this.send(transport, { type: 'drawingResult', result: submission.result }, 'reliable');
+        }
+        break;
+      }
       case 'ping':
         this.send(transport, {
           type: 'pong',
@@ -82,7 +93,11 @@ export class SimulationHost {
     }
   }
 
-  private send(transport: Transport, message: ServerMessage): void {
-    transport.send(encodeServerMessage(message), 'unreliable');
+  private send(
+    transport: Transport,
+    message: ServerMessage,
+    reliability: Reliability = 'unreliable',
+  ): void {
+    transport.send(encodeServerMessage(message), reliability);
   }
 }

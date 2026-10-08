@@ -1,6 +1,9 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { ECONOMY } from '../config/economy';
 import { FIXED_DT, TICKS_PER_SNAPSHOT } from '../config/simulation';
+import { CORPUS } from '../drawing/fixtures';
+import type { Sketch } from '../drawing/types';
 import { createLoopbackPair } from '../net/loopbackTransport';
 import { decodeServerMessage, encodeClientMessage } from '../protocol/codec';
 import type { ServerMessage } from '../protocol/messages';
@@ -126,6 +129,88 @@ describe('SimulationHost over LoopbackTransport', () => {
         { id: 8, remaining: 25 },
       ],
     });
+  });
+
+  /** A chalk box in reach of the spawn, so a player can afford to draw. */
+  function drawingSetup(lossRate: number) {
+    const scheduler = new ManualScheduler();
+    const [client, server] = createLoopbackPair({
+      conditions: { latencyMs: 0, jitterMs: 0, lossRate },
+      scheduler,
+      random: seededRandom(5),
+    });
+    const withBox: LevelData = { ...level, chalkBoxes: [{ id: 7, position: vec3(0, 1.2, -1) }] };
+    const host = new SimulationHost(new MatchSimulation(RAPIER, withBox));
+    host.connect(server);
+    const inbox: ServerMessage[] = [];
+    client.onMessage((data) => inbox.push(decodeServerMessage(data)));
+
+    client.send(encodeClientMessage({ type: 'interact', targetId: 7 }), 'reliable');
+    scheduler.advance(0);
+    return { scheduler, client, host, inbox };
+  }
+
+  const swordSketch = (): Sketch => {
+    const found = CORPUS.find((f) => f.name === 'sword-clean');
+    if (!found) throw new Error('No sword-clean fixture');
+    return found.sketch;
+  };
+
+  it('answers a drawing submission with the authoritative result', () => {
+    const { scheduler, client, inbox } = drawingSetup(0);
+    client.send(encodeClientMessage({ type: 'drawing', sketch: swordSketch() }), 'reliable');
+    scheduler.advance(0);
+
+    expect(inbox.filter((m) => m.type === 'drawingResult')).toEqual([
+      {
+        type: 'drawingResult',
+        result: {
+          outcome: {
+            kind: 'created',
+            blueprintId: 'sword',
+            accuracy: expect.any(Number),
+            quality: 'keen',
+          },
+          chalkDebited: ECONOMY.blueprintCost.sword,
+        },
+      },
+    ]);
+  });
+
+  it('reports the debit in the next snapshot', () => {
+    const { scheduler, client, inbox, host } = drawingSetup(0);
+    client.send(encodeClientMessage({ type: 'drawing', sketch: swordSketch() }), 'reliable');
+    scheduler.advance(0);
+    for (let i = 0; i < TICKS_PER_SNAPSHOT; i++) host.step();
+    scheduler.advance(0);
+
+    expect(inbox.filter((m) => m.type === 'snapshot').at(-1)).toMatchObject({
+      chalk: ECONOMY.chalk.perBox - ECONOMY.blueprintCost.sword,
+    });
+  });
+
+  it('sends the result reliably, so a lossy link still delivers it', () => {
+    const { scheduler, client, inbox, host } = drawingSetup(1);
+    client.send(encodeClientMessage({ type: 'drawing', sketch: swordSketch() }), 'reliable');
+    scheduler.advance(0);
+    for (let i = 0; i < TICKS_PER_SNAPSHOT; i++) host.step();
+    scheduler.advance(0);
+
+    expect(inbox.filter((m) => m.type === 'snapshot')).toHaveLength(0);
+    expect(inbox.filter((m) => m.type === 'drawingResult')).toHaveLength(1);
+  });
+
+  it('says nothing to a player who submits with an empty meter', () => {
+    const scheduler = new ManualScheduler();
+    const [client, server] = createLoopbackPair({ scheduler });
+    const host = new SimulationHost(new MatchSimulation(RAPIER, level));
+    host.connect(server);
+    const inbox: ServerMessage[] = [];
+    client.onMessage((data) => inbox.push(decodeServerMessage(data)));
+
+    client.send(encodeClientMessage({ type: 'drawing', sketch: swordSketch() }), 'reliable');
+    scheduler.advance(0);
+    expect(inbox.filter((m) => m.type === 'drawingResult')).toHaveLength(0);
   });
 
   it('drops malformed messages without throwing', () => {

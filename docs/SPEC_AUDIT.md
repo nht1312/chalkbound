@@ -853,6 +853,21 @@ the worst case rather than the typical one.
 
 ---
 
+### D-09 — Phase 3 authority decisions (T5) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | A refusal is not an outcome | `submitDrawing()` returns `{kind:'resolved', result}` or `{kind:'refused', reason}`, and the host sends nothing on a refusal | `unknown-player`, `no-chalk` and `rate-limited` are the authority declining to answer, not verdicts on the sketch. Keeping them in a separate branch means a caller cannot send one to the client by mistake |
+| b | Rate limiting counts ticks, not wall-clock | 500 ms becomes 30 ticks at 60 Hz; the stamp is the simulation tick | The simulation holds no wall-clock and must stay deterministic and replayable. `Date.now()` in the authority would break both |
+| c | Only an accepted submission moves the window | A refused submission leaves `lastDrawingTick` alone | Otherwise a client flooding the authority would keep extending its own lockout past the honest 500 ms, turning a fairness limit into a punishment |
+| d | The authority quantizes before grading | `submitDrawing()` runs `quantizeSketch()` even though a submission off the wire is already quantized | Idempotent, so it costs nothing on the wire path, and it means a direct caller (a probe, a test, a future local authority) is graded on the same numbers as a remote one |
+| e | An absent hint is a claim | A sketch the authority recognized and the client sent no hint for counts as a disagreement | Per plan T7 the client always runs its own validator, so no hint means "I could not read it either". Treating absence as "no opinion" would hide exactly the drift the counter exists to catch |
+| f | Hint disagreements are counted, not logged | `hintDisagreements` and `lastHintDisagreement` on the simulation; no `console` call | `shared` runs in the client bundle and has no logger. The counter carries what a log line would, and surfacing it belongs to whichever app holds the authority |
+| g | The result is sent reliably | `drawingResult` is the first reliable server message; `SimulationHost.send()` gained a reliability parameter, still defaulting to unreliable | A lost verdict leaves the player's chalk spent with nothing on screen to explain it. Snapshots stay unreliable because the next one supersedes them; a verdict has no successor |
+| h | Cost lives beside the result, not in the simulation | `chalkCostOf()` / `chalkDebitFor()` in `drawing/result.ts`, reading `BlueprintTemplate.chalkCost` | T7's client previews the same number, and the blueprint is the one place a cost should be written down |
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07
