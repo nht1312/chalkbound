@@ -1,3 +1,4 @@
+import type RAPIER from '@dimforge/rapier3d-compat';
 import { DRAWING } from '../config/drawing';
 import { ECONOMY } from '../config/economy';
 import { NETWORK } from '../config/network';
@@ -10,6 +11,7 @@ import { chalkDebitFor, toDrawingResultOutcome, type DrawingResult } from '../dr
 import type { Sketch } from '../drawing/types';
 import { validateSketch } from '../drawing/validate';
 import { quantizeSketch } from '../drawing/wire';
+import { addDrawnCollider, removeDrawnCollider } from '../physics/drawnColliders';
 import { createStaticWorld, type PhysicsWorld, type Rapier } from '../physics/staticWorld';
 import type { InputCommand } from '../protocol/messages';
 import type { ChalkBoxSpawn, LevelData } from '../world/greyboxRoom';
@@ -105,6 +107,8 @@ export class MatchSimulation {
    * author's, which is where the contested play comes from.
    */
   private readonly structures = new Map<number, DrawnStructure>();
+  /** Each structure's collider, so it can be taken back out again. */
+  private readonly structureColliders = new Map<number, RAPIER.Collider>();
   private nextObjectId = 1;
 
   /**
@@ -168,6 +172,18 @@ export class MatchSimulation {
   /** Every structure standing in the world right now. */
   drawnObjects(): readonly DrawnStructure[] {
     return [...this.structures.values()];
+  }
+
+  /**
+   * Takes a structure out of the world, collider and all. Returns false for
+   * one that is not there, which is the ordinary case when two hits land on
+   * the same wall in the same tick rather than anything exceptional.
+   */
+  removeDrawnObject(id: number): boolean {
+    const collider = this.structureColliders.get(id);
+    if (collider) removeDrawnCollider(this.world, collider);
+    this.structureColliders.delete(id);
+    return this.structures.delete(id);
   }
 
   /** What `id` is holding, if anything. */
@@ -272,7 +288,10 @@ export class MatchSimulation {
       },
     );
 
-    if (object.kind === 'structure') this.structures.set(object.id, object);
+    if (object.kind === 'structure') {
+      this.structures.set(object.id, object);
+      this.structureColliders.set(object.id, addDrawnCollider(this.rapier, this.world, object));
+    }
     // One pair of hands, one sword (plan decision 5). The replaced weapon is
     // destroyed rather than dropped: dropping needs a world-item form that
     // nothing else in the MVP wants yet.

@@ -213,7 +213,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   grade, debit — is untouched and no test of it changed. Structures outlive
   `removePlayer`; a weapon goes with the hands that held it.
 
-- [ ] **T5 — Structures bear collision.**
+- [x] **T5 — Structures bear collision.**
   A `Drawn` collision group, and colliders created and removed on the Rapier
   world alongside the static ones. Wall blocks movement; bridge is a walkable
   surface.
@@ -224,6 +224,18 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
 
   *Depends on:* T4. *Files:* `physics/collisionGroups.ts`,
   `physics/drawnColliders.ts`, `sim/MatchSimulation.ts` + tests. *Scope:* M.
+
+  **Landed.** Drawn geometry joins the player's existing movement filter
+  rather than getting a filter of its own, because the moment movement treats
+  a drawn wall differently from a built one, prediction and authority part
+  company — which is R-03 itself.
+
+  The first version of the walk test was **passing vacuously**: it submitted
+  the whole run of commands at once, which drains against `maxInputsPerTick`
+  and travelled 1.4 m, under the wall's own stand-off distance. It would have
+  reported success with no wall present. Feeding one command per tick, as a
+  real client does, moved the free walk to 4.1 m and made the assertion mean
+  something.
 
 - [ ] **T6 — A gap in the greybox room, and a bridge across it.**
   The room's single floor slab becomes two with a void between them, wide enough

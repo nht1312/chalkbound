@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { DRAWING } from '../config/drawing';
+import { CREATION } from '../config/creation';
 import { ECONOMY } from '../config/economy';
 import { MOVEMENT } from '../config/movement';
 import { NETWORK } from '../config/network';
@@ -460,6 +461,67 @@ describe('MatchSimulation drawing submissions', () => {
         wall.transform.position.z - spawn.z,
       );
       expect(away).toBeGreaterThan(MOVEMENT.capsule.radius);
+    });
+  });
+
+  /**
+   * A drawn wall is only a wall if it stops people. This is the first point
+   * at which player-made geometry enters the collision world, which SPEC_AUDIT
+   * R-03 calls the most under-appreciated risk in the design.
+   */
+  describe('structures are solid', () => {
+    /**
+     * Walks the player forward for `ticks`, one command per tick as a real
+     * client sends them. Submitting the whole run at once instead drains
+     * against `maxInputsPerTick` and travels a fraction of the distance,
+     * which would let a "the wall stopped me" test pass with no wall.
+     */
+    function walkForward(sim: MatchSimulation, ticks: number): number {
+      const start = sim.playerState(1)?.position;
+      for (let i = 0; i < ticks; i++) {
+        sim.submitInputs(1, [cmd(i + 1, { moveZ: 1, yaw: 0 })]);
+        sim.step();
+      }
+      const end = sim.playerState(1)?.position;
+      if (!start || !end) throw new Error('no player');
+      return Math.hypot(end.x - start.x, end.z - start.z);
+    }
+
+    it('lets the player walk freely when nothing has been drawn', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      expect(walkForward(sim, 90)).toBeGreaterThan(2);
+    });
+
+    it('stops the player at a wall they drew in their own way', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      // The wall stands gapM ahead; the player cannot reach past it.
+      expect(walkForward(sim, 90)).toBeLessThan(CREATION.wall.gapM + 0.5);
+    });
+
+    it('lets them walk again once the wall is gone', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      const [wall] = sim.drawnObjects();
+      sim.removeDrawnObject(wall?.id ?? -1);
+      expect(sim.drawnObjects()).toEqual([]);
+      expect(walkForward(sim, 90)).toBeGreaterThan(2);
+    });
+
+    it('does not block the player with a bridge laid at their feet', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, BRIDGE_SKETCH));
+      // A deck is a floor, not a fence: walking onto it must not be walking
+      // into it.
+      expect(walkForward(sim, 90)).toBeGreaterThan(2);
+    });
+
+    it('forgets a structure that is removed, collider and all', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      const [wall] = sim.drawnObjects();
+      expect(sim.removeDrawnObject(wall?.id ?? -1)).toBe(true);
+      expect(sim.removeDrawnObject(wall?.id ?? -1)).toBe(false);
     });
   });
 
