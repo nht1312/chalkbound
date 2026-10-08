@@ -1,6 +1,7 @@
-import type { BlueprintId } from '../drawing/blueprint';
+import type { BlueprintId, Quality } from '../drawing/blueprint';
 import type { DrawingResult } from '../drawing/result';
 import type { Sketch } from '../drawing/types';
+import type { Vec3 } from '../math/vec';
 import type { PlayerState } from '../sim/stepPlayer';
 
 /**
@@ -80,6 +81,8 @@ export type ServerMessage =
       readonly chalk: number;
       /** Every chalk box and what it still holds. */
       readonly chalkBoxes: readonly ChalkBoxState[];
+      /** Every structure standing in the world (plan decision 2). */
+      readonly drawnObjects: readonly DrawnObjectState[];
     }
   /** The authoritative verdict on one submitted sketch, sent reliably. */
   | { readonly type: 'drawingResult'; readonly result: DrawingResult };
@@ -87,4 +90,26 @@ export type ServerMessage =
 export interface ChalkBoxState {
   readonly id: number;
   readonly remaining: number;
+}
+
+/**
+ * A structure as the client needs to see it. Deliberately smaller than the
+ * authority's `DrawnStructure`: size comes from the blueprint and the drawer
+ * is nobody's business, since a structure belongs to the world (SPEC §7.4).
+ * What cannot be derived is where it stands, how well it was drawn, what is
+ * left of it, and the tick it became solid.
+ */
+export interface DrawnObjectState {
+  readonly id: number;
+  readonly blueprintId: BlueprintId;
+  readonly quality: Quality;
+  readonly position: Vec3;
+  readonly yaw: number;
+  /**
+   * The tick it became collidable. A client may only collide with it from
+   * this tick onward, which is what keeps prediction and authority agreeing
+   * about the collision world (SPEC_AUDIT R-03).
+   */
+  readonly solidFromTick: number;
+  readonly health: number;
 }

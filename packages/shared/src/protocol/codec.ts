@@ -2,6 +2,8 @@ import { NETWORK } from '../config/network';
 import {
   blueprintFromWireId,
   blueprintWireId,
+  qualityFromWireId,
+  qualityWireId,
   readDrawingResult,
   readSketch,
   writeDrawingResult,
@@ -10,7 +12,13 @@ import {
 import { dequantizeAngle, dequantizeUnit, quantizeAngle, quantizeUnit } from '../math/quantize';
 import type { PlayerState } from '../sim/stepPlayer';
 import { checkedInt, ProtocolError, Reader, Writer } from './bytes';
-import type { ChalkBoxState, ClientMessage, InputCommand, ServerMessage } from './messages';
+import type {
+  ChalkBoxState,
+  ClientMessage,
+  DrawnObjectState,
+  InputCommand,
+  ServerMessage,
+} from './messages';
 
 /** First byte of every message. Values are part of the wire format; never reuse one. */
 const Tag = {
@@ -31,6 +39,8 @@ const PLAYER_STATE_BYTES = 33;
 const SNAPSHOT_FIXED_BYTES = 9 + PLAYER_STATE_BYTES + 2;
 /** u16 id, u8 remaining. */
 const CHALK_BOX_BYTES = 3;
+/** id, blueprint, quality, x, y, z, yaw, solidFromTick, health. */
+const DRAWN_OBJECT_BYTES = 2 + 1 + 1 + 4 * 3 + 4 + 4 + 2;
 const U8_MAX = 0xff;
 const U16_MAX = 0xffff;
 
@@ -155,7 +165,11 @@ export function encodeServerMessage(message: ServerMessage): Uint8Array {
     case 'snapshot': {
       const boxes = message.chalkBoxes;
       checkedInt(boxes.length, U8_MAX, 'chalk box count');
-      const writer = new Writer(SNAPSHOT_FIXED_BYTES + boxes.length * CHALK_BOX_BYTES)
+      const drawn = message.drawnObjects;
+      checkedInt(drawn.length, U8_MAX, 'drawn object count');
+      const writer = new Writer(
+        SNAPSHOT_FIXED_BYTES + boxes.length * CHALK_BOX_BYTES + drawn.length * DRAWN_OBJECT_BYTES,
+      )
         .u8(Tag.Snapshot)
         .u32(message.serverTick)
         .u32(message.lastProcessedSeq);
@@ -166,6 +180,8 @@ export function encodeServerMessage(message: ServerMessage): Uint8Array {
           .u16(checkedInt(box.id, U16_MAX, 'chalk box id'))
           .u8(checkedInt(box.remaining, U8_MAX, 'chalk box remaining'));
       }
+      writer.u8(drawn.length);
+      for (const object of drawn) writeDrawnObject(writer, object);
       return writer.bytes;
     }
     case 'drawingResult': {
@@ -198,6 +214,7 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
         player: readPlayerState(reader),
         chalk: reader.u8(),
         chalkBoxes: readChalkBoxes(reader),
+        drawnObjects: readDrawnObjects(reader),
       } as const;
       reader.end();
       return message;
@@ -210,6 +227,46 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
     default:
       throw new ProtocolError(`Unknown server message tag ${tag}`);
   }
+}
+
+/**
+ * A structure, small enough to ride along with every snapshot. Size is left
+ * out because it follows from the blueprint, and the drawer is left out
+ * because a structure belongs to the world (SPEC §7.4) — nothing the client
+ * does with one may depend on who made it.
+ */
+function writeDrawnObject(writer: Writer, object: DrawnObjectState): void {
+  writer
+    .u16(checkedInt(object.id, U16_MAX, 'drawn object id'))
+    .u8(blueprintWireId(object.blueprintId))
+    .u8(qualityWireId(object.quality))
+    .f32(object.position.x)
+    .f32(object.position.y)
+    .f32(object.position.z)
+    .f32(object.yaw)
+    .u32(object.solidFromTick)
+    .u16(checkedInt(Math.round(object.health), U16_MAX, 'drawn object health'));
+}
+
+function readDrawnObjects(reader: Reader): DrawnObjectState[] {
+  const count = reader.u8();
+  const objects: DrawnObjectState[] = [];
+  for (let i = 0; i < count; i++) {
+    const id = reader.u16();
+    const blueprintId = blueprintFromWireId(reader.u8());
+    if (!blueprintId) throw new ProtocolError('Unknown blueprint in a drawn object');
+    const quality = qualityFromWireId(reader.u8());
+    objects.push({
+      id,
+      blueprintId,
+      quality,
+      position: { x: reader.f32(), y: reader.f32(), z: reader.f32() },
+      yaw: reader.f32(),
+      solidFromTick: reader.u32(),
+      health: reader.u16(),
+    });
+  }
+  return objects;
 }
 
 function readChalkBoxes(reader: Reader): ChalkBoxState[] {

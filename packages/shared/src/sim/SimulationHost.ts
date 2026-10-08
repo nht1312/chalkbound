@@ -49,6 +49,7 @@ export class SimulationHost {
         player,
         chalk: this.sim.chalk(id) ?? 0,
         chalkBoxes: this.sim.chalkBoxStates(),
+        drawnObjects: this.sim.drawnObjectStates(),
       });
     }
   }

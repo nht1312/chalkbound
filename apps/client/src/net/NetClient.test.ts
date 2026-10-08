@@ -128,6 +128,7 @@ describe('NetClient chalk and interaction', () => {
         player,
         chalk,
         chalkBoxes: [],
+        drawnObjects: [],
       });
 
     serverEnd.send(snapshot(20, 50), 'unreliable');

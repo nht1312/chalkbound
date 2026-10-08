@@ -13,7 +13,7 @@ import { validateSketch } from '../drawing/validate';
 import { quantizeSketch } from '../drawing/wire';
 import { addDrawnCollider, removeDrawnCollider } from '../physics/drawnColliders';
 import { createStaticWorld, type PhysicsWorld, type Rapier } from '../physics/staticWorld';
-import type { InputCommand } from '../protocol/messages';
+import type { DrawnObjectState, InputCommand } from '../protocol/messages';
 import type { ChalkBoxSpawn, LevelData } from '../world/greyboxRoom';
 import { addChalk } from './chalk';
 import { withinInteractRange } from './interaction';
@@ -172,6 +172,23 @@ export class MatchSimulation {
   /** Every structure standing in the world right now. */
   drawnObjects(): readonly DrawnStructure[] {
     return [...this.structures.values()];
+  }
+
+  /**
+   * The same structures as the wire carries them. Size is left out because it
+   * follows from the blueprint, and the drawer because a structure belongs to
+   * the world (SPEC §7.4).
+   */
+  drawnObjectStates(): DrawnObjectState[] {
+    return [...this.structures.values()].map((object) => ({
+      id: object.id,
+      blueprintId: object.blueprintId,
+      quality: object.quality,
+      position: object.transform.position,
+      yaw: object.transform.yaw,
+      solidFromTick: object.solidFromTick,
+      health: object.health,
+    }));
   }
 
   /**

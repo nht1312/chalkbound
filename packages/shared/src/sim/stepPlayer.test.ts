@@ -359,6 +359,7 @@ describe('stepPlayer: reproducibility', () => {
         player: s,
         chalk: 0,
         chalkBoxes: [],
+        drawnObjects: [],
       }),
     );
     expect(decoded.type === 'snapshot' && decoded.player).toEqual(s);

@@ -12,7 +12,7 @@ import {
 import { swordSketch } from '../drawing/fixtures';
 import { quantizeSketch } from '../drawing/wire';
 import type { PlayerState } from '../sim/stepPlayer';
-import { Button, type InputCommand } from './messages';
+import { Button, type DrawnObjectState, type InputCommand } from './messages';
 
 const command: InputCommand = {
   seq: 4_000_000_000,
@@ -127,9 +127,11 @@ describe('server messages', () => {
       player,
       chalk: 0,
       chalkBoxes: [],
+      drawnObjects: [],
     } as const;
     const encoded = encodeServerMessage(snapshot);
-    expect(encoded.byteLength).toBe(44);
+    // One more byte than Phase 3: the drawn-object count.
+    expect(encoded.byteLength).toBe(45);
 
     const decoded = decodeServerMessage(encoded);
     if (decoded.type !== 'snapshot') throw new Error('wrong type');
@@ -159,15 +161,22 @@ describe('server messages', () => {
         { id: 2, remaining: 25 },
         { id: 65535, remaining: 255 },
       ],
+      drawnObjects: [],
     } as const;
     const encoded = encodeServerMessage(snapshot);
-    expect(encoded.byteLength).toBe(44 + 3 * 3);
+    expect(encoded.byteLength).toBe(45 + 3 * 3);
     const decoded = decodeServerMessage(encoded);
     expect(decoded).toMatchObject({ chalk: 75, chalkBoxes: snapshot.chalkBoxes });
   });
 
   it('refuses to encode chalk values the wire cannot carry', () => {
-    const base = { type: 'snapshot', serverTick: 1, lastProcessedSeq: 1, player } as const;
+    const base = {
+      type: 'snapshot',
+      serverTick: 1,
+      lastProcessedSeq: 1,
+      player,
+      drawnObjects: [],
+    } as const;
     for (const bad of [
       { chalk: 256, chalkBoxes: [] },
       { chalk: -1, chalkBoxes: [] },
@@ -191,6 +200,7 @@ describe('server messages', () => {
       player,
       chalk: 0,
       chalkBoxes: [{ id: 1, remaining: 25 }],
+      drawnObjects: [],
     });
     expect(() => decodeServerMessage(encoded.slice(0, -1))).toThrow(ProtocolError);
     const inflated = encoded.slice();
@@ -213,6 +223,7 @@ describe('server messages', () => {
         player: { ...player, ...flags },
         chalk: 0,
         chalkBoxes: [],
+        drawnObjects: [],
       } as const;
       const decoded = decodeServerMessage(encodeServerMessage(snapshot));
       expect(decoded).toMatchObject({ player: flags });
@@ -249,5 +260,105 @@ describe('malformed input', () => {
     const padded = new Uint8Array(valid.length + 5);
     padded.set(valid, 5);
     expect(decodeClientMessage(padded.subarray(5)).type).toBe('inputBatch');
+  });
+});
+
+/**
+ * Structures ride along with every snapshot (plan decision 2), the same way
+ * chalk boxes do: resync-safe, at the price of bandwidth that grows with the
+ * number of objects. Chalk bounds that number in practice, and Phase 8 can
+ * revisit it when a reliable delta starts to earn its complexity.
+ */
+describe('drawn objects on the wire', () => {
+  const PLAYER: PlayerState = {
+    position: { x: 0, y: 0, z: 0 },
+    velocity: { x: 0, y: 0, z: 0 },
+    grounded: true,
+    crouching: false,
+    jumpHeld: false,
+    sprinting: false,
+    stamina: { value: 100, regenDelay: 0 },
+  };
+
+  const object = (over: Partial<DrawnObjectState> = {}): DrawnObjectState => ({
+    id: 7,
+    blueprintId: 'wall',
+    quality: 'sound',
+    position: { x: 1.5, y: 1.25, z: -3.25 },
+    yaw: 1.25,
+    solidFromTick: 640,
+    health: 60,
+    ...over,
+  });
+
+  const roundTrip = (objects: readonly DrawnObjectState[]): readonly DrawnObjectState[] => {
+    const decoded = decodeServerMessage(
+      encodeServerMessage({
+        type: 'snapshot',
+        serverTick: 900,
+        lastProcessedSeq: 12,
+        player: PLAYER,
+        chalk: 40,
+        chalkBoxes: [],
+        drawnObjects: objects,
+      }),
+    );
+    if (decoded.type !== 'snapshot') throw new Error('expected a snapshot');
+    return decoded.drawnObjects;
+  };
+
+  it('carries an empty world without complaint', () => {
+    expect(roundTrip([])).toEqual([]);
+  });
+
+  it('round-trips one structure', () => {
+    const [back] = roundTrip([object()]);
+    expect(back?.id).toBe(7);
+    expect(back?.blueprintId).toBe('wall');
+    expect(back?.quality).toBe('sound');
+    expect(back?.solidFromTick).toBe(640);
+    expect(back?.health).toBe(60);
+  });
+
+  it('keeps a structure where it was put, closely enough to collide with', () => {
+    const [back] = roundTrip([object()]);
+    expect(back?.position.x).toBeCloseTo(1.5, 3);
+    expect(back?.position.y).toBeCloseTo(1.25, 3);
+    expect(back?.position.z).toBeCloseTo(-3.25, 3);
+    expect(back?.yaw).toBeCloseTo(1.25, 3);
+  });
+
+  it('keeps several apart, in order', () => {
+    const back = roundTrip([
+      object({ id: 1, blueprintId: 'wall' }),
+      object({ id: 2, blueprintId: 'bridge', quality: 'keen' }),
+      object({ id: 3, blueprintId: 'wall', quality: 'crude', health: 12 }),
+    ]);
+    expect(back.map((o) => o.id)).toEqual([1, 2, 3]);
+    expect(back.map((o) => o.blueprintId)).toEqual(['wall', 'bridge', 'wall']);
+    expect(back.map((o) => o.quality)).toEqual(['sound', 'keen', 'crude']);
+    expect(back[2]?.health).toBe(12);
+  });
+
+  it('round-trips yaw at the compass points, where sign errors hide', () => {
+    for (const yaw of [0, Math.PI / 2, -Math.PI / 2, 3.14159, -3.14159]) {
+      const [back] = roundTrip([object({ yaw })]);
+      expect(back?.yaw).toBeCloseTo(yaw, 3);
+    }
+  });
+
+  it('refuses to encode more structures than the count field can hold', () => {
+    const tooMany = Array.from({ length: 256 }, (_, i) => object({ id: i + 1 }));
+    expect(() =>
+      encodeServerMessage({
+        type: 'snapshot',
+        serverTick: 1,
+        lastProcessedSeq: 1,
+        player: PLAYER,
+        chalk: 0,
+        chalkBoxes: [],
+        drawnObjects: tooMany,
+      }),
+    ).toThrow();
   });
 });

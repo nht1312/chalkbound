@@ -77,6 +77,14 @@ export function blueprintFromWireId(code: number): BlueprintId | undefined {
   return BLUEPRINTS_BY_CODE.get(code);
 }
 
+export function qualityWireId(quality: Quality): number {
+  return QUALITY_CODES[quality];
+}
+
+export function qualityFromWireId(code: number): Quality {
+  return lookup(QUALITY_BY_CODE, code, 'quality');
+}
+
 function lookup<K extends string>(by: ReadonlyMap<number, K>, code: number, what: string): K {
   const value = by.get(code);
   if (value === undefined) throw new ProtocolError(`Unknown ${what} code ${code}`);

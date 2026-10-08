@@ -262,7 +262,27 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   third test watches every tick of the crossing — a single bad tick is a fall
   through the deck even if the player recovers from it.
 
-- [ ] **T7 — Drawn objects on the wire, the ghost, and the solid transition (R-03).**
+- [x] **T7a — Drawn objects on the wire, and the R-03 invariant (shared).**
+  The first half of T7, split off as the task's own note allowed once it grew
+  past five files. Snapshots carry the structure list, the codec encodes it,
+  and the invariant of decision 3 is asserted rather than mechanised.
+  *Accept:* round-trips; the invariant holds across many snapshots, several
+  structures, injected latency and 10% loss; a structure appears only in
+  snapshots *after* the one it was drawn on, and keeps riding along until it
+  is removed.
+
+  **Landed.** `DrawnObjectState` is deliberately smaller than the authority's
+  `DrawnStructure`: size follows from the blueprint, and the drawer is left
+  out entirely, because a structure belongs to the world and nothing the
+  client does with one may depend on who made it (SPEC §7.4). 26 bytes each.
+
+  Two test-construction errors worth recording, both found by the tests
+  failing rather than by reasoning: submissions spaced by snapshot cadence
+  instead of by the authority's 30-tick rate limit, so two of three sketches
+  were silently refused; and an off-by-one where the snapshot emitted *on* the
+  submission tick was already on its way out before the sketch was handed in.
+
+- [ ] **T7b — The client ghost and the solid transition (R-03).**
   Snapshots carry the drawn-object list (decision 2) and the codec encodes it.
   The client renders a translucent, non-colliding ghost from the moment it
   submits, swaps it for the confirmed object when the snapshot names it, and only
