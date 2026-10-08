@@ -33,7 +33,7 @@ const U8_MAX = 0xff;
 // are part of the wire format: never reuse or renumber one.
 
 /** 0 is reserved for "no blueprint", so a code is always above zero. */
-const BLUEPRINT_CODES: Record<BlueprintId, number> = { sword: 1 };
+const BLUEPRINT_CODES: Record<BlueprintId, number> = { sword: 1, wall: 2, bridge: 3 };
 const QUALITY_CODES: Record<Quality, number> = { crude: 1, sound: 2, keen: 3 };
 const REASON_CODES: Record<RejectionReason, number> = { 'below-floor': 1, ambiguous: 2 };
 const FAILURE_CODES: Record<FailureCode, number> = {

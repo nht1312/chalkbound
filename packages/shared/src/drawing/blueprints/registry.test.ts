@@ -20,8 +20,8 @@ function traceReference(id: (typeof BLUEPRINTS)[number]['id']): Sketch {
 }
 
 describe('the blueprint registry', () => {
-  it('holds only the sword in Phase 3', () => {
-    expect(BLUEPRINTS.map((b) => b.id)).toEqual(['sword']);
+  it('holds the whole MVP set (SPEC 7)', () => {
+    expect(BLUEPRINTS.map((b) => b.id)).toEqual(['sword', 'wall', 'bridge']);
   });
 
   it('gives every blueprint a unique id', () => {

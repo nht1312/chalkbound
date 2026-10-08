@@ -98,7 +98,18 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
 
 ## Tasks
 
-- [ ] **T1 — Wall and bridge blueprints, and the full confusion matrix (shared).**
+- [x] **T1a — Cyclic matching for closed template strokes (shared).**
+  Added after T1 was found to be blocked: `meanTemplateDistance` matched points
+  index to index, so a rectangle begun at a different corner fell out of phase
+  with the template. Two of eight traversals classified at 0.978 and the other
+  six were refused at 0.393, under the 0.50 floor. Rotation is keyed off the
+  *template*, so open strokes are unaffected, and the period is one fewer than
+  the sample count because a loop's last sample is its first.
+  **Approved as the exception to the exit criterion below**, on the grounds
+  that it is a gap any closed blueprint would hit rather than wall-specific
+  code. Landed in `drawing/geometry.ts`. Decision to record as D-15.
+
+- [x] **T1 — Wall and bridge blueprints, and the full confusion matrix (shared).**
   The riskiest task, placed first. Wall and bridge as pure data files beside
   `sword.ts`; `BlueprintId` widens to three; the registry lists them. Fixture
   corpus gains sloppy, ambiguous and negative cases for both, plus the
@@ -114,9 +125,21 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
     `blueprint.ts`'s `BlueprintId` changed** — asserted by reading the commit's
     own diff, which is the prompt §7 requirement made checkable.
 
-  *Depends on:* none. *Files:* `drawing/blueprints/{wall,bridge,registry}.ts`,
+  *Depends on:* T1a. *Files:* `drawing/blueprints/{wall,bridge,registry}.ts`,
   `drawing/blueprint.ts`, `drawing/fixtures.ts`, `drawing/corpus.test.ts`,
   `drawing/blueprints/registry.test.ts`. *Scope:* M.
+
+  **Landed.** Zero validator-logic files changed — `classify`, `validate`,
+  `constraints`, `discriminators`, `normalize`, `geometry` and `result` are
+  all untouched by this commit. Three *typed registration tables* each needed
+  one new entry, and the compiler named all three without being asked: the
+  wire codes, and the client's blueprint names and parts. That is a better
+  demonstration of the prompt §7 requirement than an empty diff would have
+  been, because it shows exactly what a new blueprint must declare.
+  Rejection rate: **0.0%** of sketches that meant something, **92.9%** of
+  those that meant nothing (the rest graded down, never built). Decisions to
+  record as D-16 (the taught bridge rail gap) and D-17 (a non-blueprint may
+  smudge). Three further findings, all flagged below.
 
 - [ ] **T2 — The Codex teaches three, and `unaffordable` becomes reachable.**
   Costs now differ (wall 15, sword 20, bridge 25), so a player can recognizably
@@ -269,6 +292,27 @@ Not Phase 4 work, and not closable by me:
 Phase 4 proceeds without them because the roadmap's hard gate sits before
 **Phase 6**, not Phase 4 — but every task below is built on drawing feel that
 has not yet been signed off.
+
+## Findings from T1, carried forward
+
+1. **A circle is now read as a badly drawn wall, not as nothing.** It shares
+   the wall's topology exactly — one stroke, no crossing, closed — so the hard
+   filter cannot separate them, and what refuses it is its proportions, which
+   are graded rather than filtered. Phase 3's plan allowed exactly this
+   ("unrecognized or smudged, never a wrong `created`"); only the sword existed
+   to test it then. The absolute guarantee is intact and asserted: **nothing
+   that is not a blueprint is ever created.** The corpus assertions were
+   widened to match, in two separately named tests rather than one loosened one.
+2. **The bridge's rails are interchangeable**, which no other blueprint's
+   strokes are — the sword's guard is told from its blade by length. "Upper
+   first" is therefore a convention, not a shape. The taught gap was narrowed
+   from 0.15 to 0.1 so the two orderings stay close under template matching:
+   drawing the lower rail first still reads as a bridge rather than falling off
+   a cliff, and a test asserts it never grades *higher* than the taught order.
+3. **Fixtures must fit the 0.8 m chalk plane.** The first wall and bridge
+   fixtures were authored a metre across and quantized out of range, which the
+   wire suite caught. Blueprint *references* are unitless and normalized before
+   use, so they stay at 1.0; only fixtures are bound by the plane.
 
 ## Open questions
 

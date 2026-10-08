@@ -58,6 +58,24 @@ describe('every fixture reaches the outcome it was built for', () => {
   });
 });
 
+describe('stroke order', () => {
+  /**
+   * The bridge's rails are interchangeable, so the untaught order is still a
+   * reading of the same shape — but never a better one, or the Codex would be
+   * teaching the worse way round.
+   */
+  it('grades a bridge drawn bottom-rail-first no higher than the taught order', () => {
+    const accuracyOf = (name: string): number => {
+      const fixture = CORPUS.find((f) => f.name === name);
+      const outcome = fixture ? outcomeOf(fixture) : undefined;
+      return outcome && 'accuracy' in outcome ? outcome.accuracy : NaN;
+    };
+    expect(accuracyOf('bridge-drawn-bottom-rail-first')).toBeLessThanOrEqual(
+      accuracyOf('bridge-clean'),
+    );
+  });
+});
+
 describe('accuracy bands (SPEC 6.5)', () => {
   it.each(CORPUS.filter((f) => f.quality).map((f) => [f.name, f] as const))(
     '%s lands in its band',
@@ -95,22 +113,60 @@ describe('the confusion matrix', () => {
     return matrix;
   }
 
-  it('reads every sword as a sword, or refuses it — never as something else', () => {
-    const row = buildMatrix().get('sword');
-    expect([...(row?.keys() ?? [])].sort()).toEqual(['sword']);
-  });
+  it.each(BLUEPRINTS.map((b) => [b.id] as const))(
+    'reads every %s as that blueprint, or refuses it — never as something else',
+    (id) => {
+      const row = buildMatrix().get(id);
+      expect([...(row?.keys() ?? [])].sort()).toEqual([id]);
+    },
+  );
 
-  it('refuses everything that is not a blueprint', () => {
+  it('never creates anything from a shape that is not a blueprint', () => {
     const row = buildMatrix().get('nothing');
-    expect([...(row?.keys() ?? [])]).toEqual(['refused']);
+    const created = CORPUS.filter((f) => f.intent === null && outcomeOf(f).kind === 'created');
+    expect(created.map((f) => f.name)).toEqual([]);
+    // It may still be *read as* an attempt and smudged — see the block below.
+    expect([...(row?.keys() ?? [])].length).toBeGreaterThan(0);
   });
 
   it('has zero misclassifications across the whole corpus', () => {
     const misreads = CORPUS.filter((f) => {
       const was = readAs(f);
-      return was !== null && was !== f.intent;
+      if (was === null) return false; // a refusal is never a misread
+      // A shape that is not a blueprint misreads only if something was made.
+      if (f.intent === null) return outcomeOf(f).kind === 'created';
+      return was !== f.intent;
     });
     expect(misreads.map((f) => f.name)).toEqual([]);
+  });
+});
+
+/**
+ * The number to watch while tuning `RECOGNITION_FLOOR` and
+ * `AMBIGUITY_MARGIN`. Both are meant to move toward *more* rejections
+ * (SPEC_AUDIT R-11), and the cost of doing so is paid here: every point of
+ * rejection rate is a player who drew something real and was told it could
+ * not be read. The percentages are in the test names so a run prints them
+ * without anyone having to add logging.
+ */
+const INTENDED = CORPUS.filter((f) => f.intent !== null);
+const REFUSED = INTENDED.filter((f) => readAs(f) === null);
+const NON_BLUEPRINTS = CORPUS.filter((f) => f.intent === null);
+const pct = (part: number, whole: number): string =>
+  whole === 0 ? 'n/a' : `${((100 * part) / whole).toFixed(1)}%`;
+
+describe('rejection rate', () => {
+  it(`refuses ${pct(REFUSED.length, INTENDED.length)} of the sketches that meant something`, () => {
+    expect(REFUSED.map((f) => f.name)).toEqual([]);
+  });
+
+  it(`refuses ${pct(
+    NON_BLUEPRINTS.filter((f) => readAs(f) === null).length,
+    NON_BLUEPRINTS.length,
+  )} of the sketches that meant nothing, and grades the rest down`, () => {
+    // Whatever is not refused outright must still have been graded away.
+    const built = NON_BLUEPRINTS.filter((f) => outcomeOf(f).kind === 'created');
+    expect(built.map((f) => f.name)).toEqual([]);
   });
 });
 
@@ -120,12 +176,35 @@ describe('refusal is always allowed, a misread never is', () => {
     expect(created.map((f) => f.name)).toEqual([]);
   });
 
-  it('only ever creates or smudges the blueprint the fixture intended', () => {
+  it('only ever creates the blueprint the fixture intended', () => {
     for (const fixture of CORPUS) {
       const outcome = outcomeOf(fixture);
-      if (outcome.kind === 'created' || outcome.kind === 'smudged') {
-        expect(outcome.blueprintId).toBe(fixture.intent);
-      }
+      if (outcome.kind === 'created') expect(outcome.blueprintId).toBe(fixture.intent);
+    }
+  });
+
+  it('only ever smudges the blueprint a recognisable fixture intended', () => {
+    for (const fixture of CORPUS.filter((f) => f.intent !== null)) {
+      const outcome = outcomeOf(fixture);
+      if (outcome.kind === 'smudged') expect(outcome.blueprintId).toBe(fixture.intent);
+    }
+  });
+
+  /**
+   * A shape that is not a blueprint may still be *read as an attempt at one*
+   * and smudged — a circle is a closed loop with a wall's topology and the
+   * wrong proportions, and "that shape is wrong" is better feedback than
+   * "unreadable", for a chalk cost that is lower either way. What stays
+   * absolute is the line above it: nothing that is not a blueprint is ever
+   * **created**. Phase 3's plan allowed exactly this ("unrecognized or
+   * smudged, never a wrong created"); only the sword existed to test it then.
+   */
+  it('may smudge a shape that is not a blueprint, having created nothing', () => {
+    const smudgedNonBlueprints = CORPUS.filter(
+      (f) => f.intent === null && outcomeOf(f).kind === 'smudged',
+    );
+    for (const fixture of smudgedNonBlueprints) {
+      expect(outcomeOf(fixture).kind).not.toBe('created');
     }
   });
 

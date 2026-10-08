@@ -2,8 +2,8 @@ import type { Constraint, ConstraintFailure } from './constraints';
 import type { Discriminators } from './discriminators';
 import type { Point2 } from './types';
 
-/** Everything the game knows how to draw. Wall and bridge join in Phase 4. */
-export type BlueprintId = 'sword';
+/** Everything the game knows how to draw (SPEC §7, the MVP set). */
+export type BlueprintId = 'sword' | 'wall' | 'bridge';
 
 /** How well it was drawn, which the created object wears visibly (SPEC §6.5). */
 export type Quality = 'crude' | 'sound' | 'keen';

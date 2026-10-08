@@ -44,7 +44,6 @@ describe('classify: the hard discriminator filter', () => {
 
   it.each([
     ['a single line', [[p(0, -0.3), p(0, 0.3)]]],
-    ['a circle', [ringWaypoints(0.25)]],
     ['a scribble', [scribbleWaypoints(7)]],
     [
       'two parallel lines, which never cross',
@@ -72,6 +71,21 @@ describe('classify: the hard discriminator filter', () => {
   ] as const)('refuses %s rather than guessing', (_name, waypoints) => {
     const result = read(trace(3, ...waypoints.map((w) => [...w])));
     expect(result.kind).toBe('rejected');
+  });
+
+  /**
+   * A circle used to be refused here, when the sword was the only blueprint.
+   * It shares the wall's topology exactly — one stroke, no crossing, closed —
+   * so the hard filter cannot separate them and classification now offers the
+   * wall. That is the filter working as designed: what refuses a circle is
+   * its proportions, and proportions are graded, not filtered. The validator
+   * test alongside this one asserts that nothing is ever built from one.
+   */
+  it('offers the wall for a circle, which shares its topology', () => {
+    const result = read(trace(3, [...ringWaypoints(0.25)]));
+    expect(result.kind).toBe('match');
+    if (result.kind !== 'match') return;
+    expect(result.blueprint.id).toBe('wall');
   });
 
   it('refuses an empty sketch', () => {

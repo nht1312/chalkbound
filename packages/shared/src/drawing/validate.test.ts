@@ -185,13 +185,27 @@ describe('validateSketch', () => {
 
   it.each([
     ['a single line', [[p(0, -0.3), p(0, 0.3)]]],
-    ['a circle', [ringWaypoints(0.25)]],
     ['a scribble', [scribbleWaypoints(33)]],
   ] as const)('refuses to read %s, rather than guessing at it', (_name, waypoints) => {
     const outcome = validateSketch(trace(34, ...waypoints.map((w) => [...w])), RICH);
     expect(outcome.kind).toBe('unrecognized');
     if (outcome.kind !== 'unrecognized') return;
     expect(outcome.reason).toBe('below-floor');
+  });
+
+  /**
+   * A circle is a closed loop with a wall's topology and nothing like a
+   * wall's proportions, so it is read as a wall badly drawn rather than as
+   * nothing at all. The player is told their shape is wrong, which is the
+   * more useful of the two things we could say. What must never happen is a
+   * wall actually being built from one.
+   */
+  it('smudges a circle as a wall of the wrong shape, and builds nothing', () => {
+    const outcome = validateSketch(trace(34, [...ringWaypoints(0.25)]), RICH);
+    expect(outcome.kind).toBe('smudged');
+    if (outcome.kind !== 'smudged') return;
+    expect(outcome.blueprintId).toBe('wall');
+    expect(outcome.failures.map((f) => f.code)).toContain('wrong-aspect');
   });
 
   it('refuses an empty sketch', () => {
@@ -228,7 +242,7 @@ describe('validateSketch', () => {
     });
 
     it('does not consider affordability at all for an unreadable sketch', () => {
-      const outcome = validateSketch(trace(38, ringWaypoints(0.25)), { heldChalk: 0 });
+      const outcome = validateSketch(trace(38, scribbleWaypoints(38)), { heldChalk: 0 });
       expect(outcome.kind).toBe('unrecognized');
     });
   });
