@@ -76,6 +76,8 @@ export const CLIENT_CONFIG = {
     halfExtent: DRAWING.plane.sizeM / 2,
     /** How long the plane takes to arrive, and to leave. */
     fadeSeconds: 0.15,
+    /** How long the verdict stays on screen after a submission. */
+    bannerHoldSeconds: 2.5,
     recorder: {
       /** Samples per second. Above the tick rate: drawing is a drawn line, not a step. */
       sampleRate: 90,

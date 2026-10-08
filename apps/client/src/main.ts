@@ -5,10 +5,14 @@ import {
   ECONOMY,
   eyePosition,
   FixedStepRunner,
+  chalkDebitFor,
   DRAWING,
   initialPlayerState,
   quantizeInputCommand,
+  quantizeSketch,
   SIMULATION_TIMESTEP,
+  toDrawingResultOutcome,
+  validateSketch,
 } from '@chalkbound/shared';
 import { CLIENT_CONFIG } from './config/client';
 import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
@@ -34,6 +38,7 @@ import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
 import { createChalkMeter } from './ui/chalkMeter';
 import { createInteractPrompt } from './ui/interactPrompt';
+import { createDrawingBanner, describeDrawingResult } from './ui/drawingBanner';
 import { createPauseMenu } from './ui/pauseMenu';
 import { browserSettingsStore, loadSettings, saveSettings } from './ui/settings';
 import './style.css';
@@ -139,6 +144,8 @@ function bootstrap(): void {
   );
 
   const chalkMeter = createChalkMeter(root, ECONOMY.chalk.max);
+  const drawingBanner = createDrawingBanner(root, drawCfg.bannerHoldSeconds);
+  let shownDrawingResults = 0;
   const prompt = createInteractPrompt(root);
   let interactWasDown = false;
 
@@ -164,7 +171,7 @@ function bootstrap(): void {
     const { dx, dy } = input.consumeMouseDelta();
     // While the chalk is up the same deltas drive the cursor, and the camera
     // holds still. Pointer lock is never released either way (RD-08).
-    drawMode.update({
+    const drawEvent = drawMode.update({
       drawHeld: input.isDown('Draw'),
       strokeHeld: input.isDown('Attack'),
       pointerLocked: input.pointerLocked,
@@ -178,6 +185,27 @@ function bootstrap(): void {
       dt: frameDelta,
     });
     if (!drawMode.active) look.applyMouseDelta(dx, dy);
+
+    if (drawEvent?.kind === 'submitted') {
+      // Validate the same quantized strokes the authority will decode, so the
+      // instant feedback and the verdict that follows agree. The authority
+      // decides; this only removes a round trip from seeing the answer.
+      const held = net.chalk ?? 0;
+      const local = validateSketch(quantizeSketch(drawEvent.sketch), { heldChalk: held });
+      const hint = 'blueprintId' in local ? local.blueprintId : undefined;
+      net.sendDrawing(drawEvent.sketch, hint);
+      drawingBanner.show(
+        describeDrawingResult({
+          outcome: toDrawingResultOutcome(local),
+          chalkDebited: chalkDebitFor(local, held),
+        }),
+      );
+    }
+    if (net.drawingResult && net.drawingResultCount !== shownDrawingResults) {
+      shownDrawingResults = net.drawingResultCount;
+      drawingBanner.show(describeDrawingResult(net.drawingResult));
+    }
+    drawingBanner.update(frameDelta);
 
     if (predictor && net.authoritativePlayer && net.snapshotCount !== reconciledSnapshots) {
       reconciledSnapshots = net.snapshotCount;

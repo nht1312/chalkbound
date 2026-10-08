@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing/ManualScheduler.ts"
+    "./testing": "./src/testing/ManualScheduler.ts",
+    "./testing/drawing": "./src/drawing/fixtures.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

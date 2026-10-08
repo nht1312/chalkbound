@@ -152,7 +152,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   SPEC_AUDIT D-10. **The feel pass (cursor speed, sample rate, fade, hand
   pose) is still owed** — see ROADMAP exit criteria 4 and 10.
 
-- [ ] **T7 — Submission, local preview, and specific feedback.**
+- [x] **T7 — Submission, local preview, and specific feedback.**
   - Releasing RMB quantizes, validates locally (hint plus instant feedback) and
     sends.
   - On `DrawingResult`, a creation burst names the recognized blueprint and its
@@ -163,6 +163,14 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
 
   *Accept:* tests for the failure-code-to-message mapping and the outcome-to-UI
   mapping.
+
+  Landed in `client/ui/drawingBanner.ts` (`describeDrawingResult`,
+  `failureDetail`, and the banner), `NetClient.sendDrawing` with
+  `drawingResult` / `drawingResultCount`, and the submission path in
+  `main.ts`. A smudge reports one failure, chosen by priority, named in the
+  blueprint's own parts. Fixtures reach client tests through a new
+  `@chalkbound/shared/testing/drawing` subpath. Decisions recorded as
+  SPEC_AUDIT D-11.
 
 - [ ] **T8 — Drawing feedback channel (D-02).**
   - A chalk scratch loop, synthesized in Web Audio with no asset files, whose

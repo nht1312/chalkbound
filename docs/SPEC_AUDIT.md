@@ -891,6 +891,23 @@ test can settle any of them.
 
 ---
 
+### D-11 — Phase 3 feedback decisions (T7) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | One failure, not a list | A smudge that broke four rules gets one sentence, chosen by a priority order over failure codes | A list reads as the game piling on, and the player can only fix one thing at a time. Structural faults ("the crossguard didn't cross the blade") rank above advice they already have ("keep the line straight") |
+| b | Copy is keyed by blueprint *and* code | `failureDetail(blueprintId, code)` names parts from a per-blueprint table — blade, crossguard | This is what makes the message teach the shape instead of describing a constraint. It also confirms D-08 (f): the wire needs no stroke indices, because the code plus the blueprint is enough |
+| c | A refusal never names its runner-up | `unrecognized` says "that could have been two different things", never "that was almost a sword", even when `bestCandidate` is set | Naming it invites the player to argue with a refusal that already cost them chalk. The candidate is a diagnostic for us, not a judgement for them |
+| d | The local preview reuses the authority's own code | The client runs `validateSketch` on the *quantized* sketch and prices it with `chalkDebitFor` | Both sides then compute from identical numbers, so the instant feedback and the verdict that replaces it agree. The preview removes a round trip from *seeing* the answer, not from the decision |
+| e | Verdicts are counted, not diffed | `drawingResultCount` alongside `drawingResult` | Drawing the same shape twice produces two identical results, and the second still deserves to be shown |
+| f | Fixtures reach tests by a subpath | `@chalkbound/shared/testing/drawing`, not the package index | Keeps the corpus out of the client bundle (its original reason for being off the index) while letting client tests use the same sketches the authority is tested with |
+
+**Known gap.** The banner is DOM, and this project has no DOM test
+environment: the mapping from verdict to words is covered, the rendering of
+it is not. Nothing in T7 has been seen on screen.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

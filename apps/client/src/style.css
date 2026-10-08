@@ -136,3 +136,48 @@ body {
 .pause-menu__setting input {
   width: 240px;
 }
+
+/* Verdict on a submitted sketch: the game saying what it read (R-11). */
+.drawing-banner {
+  position: absolute;
+  top: calc(50% - 150px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.8);
+}
+
+.drawing-banner[hidden],
+.drawing-banner__detail[hidden],
+.drawing-banner__cost[hidden] {
+  display: none;
+}
+
+.drawing-banner__title {
+  font-size: 26px;
+  letter-spacing: 0.08em;
+}
+
+/* Created is the only good outcome, and the only one that reads as chalk. */
+.drawing-banner[data-tone='created'] .drawing-banner__title {
+  color: #f2efe6;
+}
+
+.drawing-banner[data-tone='smudged'] .drawing-banner__title,
+.drawing-banner[data-tone='unrecognized'] .drawing-banner__title,
+.drawing-banner[data-tone='unaffordable'] .drawing-banner__title {
+  color: #c9b79a;
+}
+
+.drawing-banner__detail {
+  margin-top: 4px;
+  font-size: 15px;
+  color: #d8d3c8;
+}
+
+.drawing-banner__cost {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #b98f7a;
+}

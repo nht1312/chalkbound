@@ -3,10 +3,14 @@ import {
   encodeClientMessage,
   NETWORK,
   ProtocolError,
+  quantizeSketch,
+  type BlueprintId,
+  type DrawingResult,
   type InputCommand,
   type PlayerState,
   type Scheduler,
   type ServerMessage,
+  type Sketch,
   type Transport,
 } from '@chalkbound/shared';
 
@@ -33,6 +37,14 @@ export class NetClient {
   chalk: number | undefined;
   /** Authoritative remaining chalk per box id. */
   chalkBoxes: ReadonlyMap<number, number> = new Map();
+  /** The newest verdict on a submitted sketch; undefined until one arrives. */
+  drawingResult: DrawingResult | undefined;
+  /**
+   * Increments on every verdict. Poll it rather than watching
+   * `drawingResult`: drawing the same shape twice produces two identical
+   * results, and the second one still deserves to be shown.
+   */
+  drawingResultCount = 0;
 
   private newestSnapshotTick = -1;
   protocolErrors = 0;
@@ -71,6 +83,27 @@ export class NetClient {
   /** Asks the authority to use a world object; the result arrives in a later snapshot. */
   sendInteract(targetId: number): void {
     this.transport.send(encodeClientMessage({ type: 'interact', targetId }), 'reliable');
+  }
+
+  /**
+   * Submits a finished sketch. Reliable: a lost sketch costs the player the
+   * chalk they were about to spend and tells them nothing.
+   *
+   * The sketch is quantized here so the caller's local preview and the
+   * authority's verdict are computed from identical numbers. `hint` is what
+   * the client's own validator made of it, and the authority uses it only to
+   * count disagreements — it never changes the outcome.
+   */
+  sendDrawing(sketch: Sketch, hint?: BlueprintId): void {
+    const quantized = quantizeSketch(sketch);
+    this.transport.send(
+      encodeClientMessage(
+        hint === undefined
+          ? { type: 'drawing', sketch: quantized }
+          : { type: 'drawing', sketch: quantized, hint },
+      ),
+      'reliable',
+    );
   }
 
   /** Call once per frame; sends a ping on the configured cadence. */
@@ -117,6 +150,10 @@ export class NetClient {
         this.chalkBoxes = new Map(message.chalkBoxes.map((b) => [b.id, b.remaining]));
         this.snapshotCount++;
         this.unacked = this.unacked.filter((c) => c.seq > this.lastAckedSeq);
+        break;
+      case 'drawingResult':
+        this.drawingResult = message.result;
+        this.drawingResultCount++;
         break;
     }
   }

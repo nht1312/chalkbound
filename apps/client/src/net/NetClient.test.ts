@@ -3,13 +3,19 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createGreyboxRoom,
   createLoopbackPair,
+  ECONOMY,
   encodeServerMessage,
   initialPlayerState,
   FIXED_DT,
   MatchSimulation,
   SimulationHost,
+  TICKS_PER_SNAPSHOT,
+  vec3,
   type InputCommand,
+  type LevelData,
+  type Sketch,
 } from '@chalkbound/shared';
+import { CORPUS } from '@chalkbound/shared/testing/drawing';
 import { ManualScheduler, seededRandom } from '@chalkbound/shared/testing';
 import { NetClient } from './NetClient';
 
@@ -129,5 +135,78 @@ describe('NetClient chalk and interaction', () => {
     scheduler.advance(0);
     expect(net.chalk).toBe(50);
     expect(net.serverTick).toBe(20);
+  });
+});
+
+describe('NetClient drawing submissions', () => {
+  const sketchNamed = (name: string): Sketch => {
+    const found = CORPUS.find((f) => f.name === name);
+    if (!found) throw new Error(`No fixture named ${name}`);
+    return found.sketch;
+  };
+
+  /** A player standing on a full chalk box, with nothing else in the room. */
+  function drawingSetup() {
+    const scheduler = new ManualScheduler();
+    const [clientEnd, serverEnd] = createLoopbackPair({ scheduler });
+    const level: LevelData = {
+      boxes: [
+        { id: 'floor', kind: 'floor', center: vec3(0, -0.5, 0), halfExtents: vec3(50, 0.5, 50) },
+      ],
+      spawn: vec3(0, 0, 0),
+      chalkBoxes: [{ id: 1, position: vec3(0, 1.2, -1) }],
+    };
+    const host = new SimulationHost(new MatchSimulation(RAPIER, level));
+    host.connect(serverEnd);
+    const net = new NetClient(clientEnd, scheduler);
+    const settle = (): void => {
+      scheduler.advance(0);
+      for (let i = 0; i < TICKS_PER_SNAPSHOT; i++) host.step();
+      scheduler.advance(0);
+    };
+    return { net, settle };
+  }
+
+  it('sends a sketch and surfaces the authoritative verdict', () => {
+    const { net, settle } = drawingSetup();
+    net.sendInteract(1);
+    settle();
+    expect(net.chalk).toBe(ECONOMY.chalk.perBox);
+
+    net.sendDrawing(sketchNamed('sword-clean'));
+    settle();
+    expect(net.drawingResult?.outcome.kind).toBe('created');
+    expect(net.drawingResult?.chalkDebited).toBe(ECONOMY.blueprintCost.sword);
+    expect(net.chalk).toBe(ECONOMY.chalk.perBox - ECONOMY.blueprintCost.sword);
+  });
+
+  it('counts verdicts, so the UI can tell a new one from the one on screen', () => {
+    const { net, settle } = drawingSetup();
+    expect(net.drawingResultCount).toBe(0);
+    net.sendInteract(1);
+    settle();
+
+    net.sendDrawing(sketchNamed('scribble'));
+    settle();
+    expect(net.drawingResultCount).toBe(1);
+  });
+
+  it('hears nothing back when the authority refuses to answer', () => {
+    const { net, settle } = drawingSetup();
+    // No chalk picked up: the authority ignores the submission entirely.
+    net.sendDrawing(sketchNamed('sword-clean'));
+    settle();
+    expect(net.drawingResult).toBeUndefined();
+    expect(net.drawingResultCount).toBe(0);
+  });
+
+  it('passes the hint along without letting it change the verdict', () => {
+    const { net, settle } = drawingSetup();
+    net.sendInteract(1);
+    settle();
+
+    net.sendDrawing(sketchNamed('scribble'), 'sword');
+    settle();
+    expect(net.drawingResult?.outcome.kind).toBe('unrecognized');
   });
 });
