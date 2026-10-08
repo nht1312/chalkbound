@@ -611,6 +611,95 @@ describe('MatchSimulation drawing submissions', () => {
     });
   });
 
+  /**
+   * RD-07: structures have health and can be destroyed. Phase 4 builds the
+   * model and tests the arithmetic directly; the blows themselves arrive with
+   * combat in Phase 5. Nothing here may depend on who drew what — a structure
+   * belongs to the world, which is where the contested play comes from.
+   */
+  describe('damaging what was drawn', () => {
+    /**
+     * A sim with a wall standing, its id, and the health it actually has —
+     * which is the base scaled by how well the fixture was drawn, not the
+     * blueprint's own number.
+     */
+    function withWall(): { sim: MatchSimulation; id: number; health: number } {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, WALL_SKETCH));
+      const wall = sim.drawnObjects()[0];
+      if (!wall) throw new Error('expected a wall');
+      return { sim, id: wall.id, health: wall.maxHealth };
+    }
+
+    it('takes health off without destroying it', () => {
+      const { sim, id, health } = withWall();
+      expect(sim.damageDrawnObject(id, 20)).toBe('damaged');
+      expect(sim.drawnObjects()[0]?.health).toBe(health - 20);
+    });
+
+    it('destroys it on the blow that empties its health', () => {
+      const { sim, id, health } = withWall();
+      expect(sim.damageDrawnObject(id, health - 1)).toBe('damaged');
+      expect(sim.damageDrawnObject(id, 1)).toBe('destroyed');
+      expect(sim.drawnObjects()).toEqual([]);
+    });
+
+    it('destroys it outright when hit far harder than it can take', () => {
+      const { sim, id } = withWall();
+      expect(sim.damageDrawnObject(id, 9999)).toBe('destroyed');
+      expect(sim.drawnObjects()).toEqual([]);
+    });
+
+    it('reports a blow on something no longer there, rather than erroring', () => {
+      const { sim, id } = withWall();
+      sim.damageDrawnObject(id, 9999);
+      expect(sim.damageDrawnObject(id, 10)).toBe('missing');
+      expect(sim.damageDrawnObject(-1, 10)).toBe('missing');
+    });
+
+    it('ignores a meaningless blow rather than healing', () => {
+      const { sim, id, health } = withWall();
+      for (const amount of [0, -10, Number.NaN]) sim.damageDrawnObject(id, amount);
+      expect(sim.drawnObjects()[0]?.health).toBe(health);
+    });
+
+    /** The point of RD-07: a destroyed wall stops being a wall immediately. */
+    it('stops blocking the moment it is destroyed', () => {
+      const { sim, id } = withWall();
+      const walk = (ticks: number): number => {
+        const from = sim.playerState(1)?.position;
+        for (let i = 0; i < ticks; i++) {
+          sim.submitInputs(1, [cmd(sim.tick + i + 1, { moveZ: 1, yaw: 0 })]);
+          sim.step();
+        }
+        const to = sim.playerState(1)?.position;
+        if (!from || !to) throw new Error('no player');
+        return Math.hypot(to.x - from.x, to.z - from.z);
+      };
+      expect(walk(60)).toBeLessThan(CREATION.wall.gapM + 0.5);
+      sim.damageDrawnObject(id, 9999);
+      expect(walk(60)).toBeGreaterThan(1);
+    });
+
+    it('scales a structure’s health by how well it was drawn', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, sketchNamed('wall-pristine')));
+      const keen = sim.drawnObjects()[0];
+      expect(keen?.quality).toBe('keen');
+      expect(keen?.maxHealth).toBeGreaterThan(CREATION.wall.health);
+    });
+
+    it('lets anyone damage anyone’s wall, because it is the world’s (RD-07)', () => {
+      const { sim, id } = withWall();
+      sim.addPlayer(2);
+      // The authority exposes no "who" at all: there is nowhere for ownership
+      // to be consulted even by mistake.
+      expect(sim.damageDrawnObject(id, 10)).toBe('damaged');
+      sim.removePlayer(1);
+      expect(sim.damageDrawnObject(id, 10)).toBe('damaged');
+    });
+  });
+
   it('never takes more chalk than the player holds', () => {
     const sim = drawSim(2);
     const result = resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));

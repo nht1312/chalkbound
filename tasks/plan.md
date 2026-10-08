@@ -340,7 +340,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   see. The blade is rebuilt only when the weapon or its grade changes, rather
   than thirty times a second for a sword that has not moved.
 
-- [ ] **T9 — Drawn-object health and destruction (RD-07).**
+- [x] **T9 — Drawn-object health and destruction (RD-07).**
   `damageObject()` on the authority: structures take damage, reach zero, and are
   removed — collider and all. Tested directly, with no combat attached.
   *Accept:* damage arithmetic and the destruction threshold; a destroyed wall
@@ -348,8 +348,18 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   structures are the world's (RD-07); destroying an already-destroyed object is
   a no-op, not an error.
 
-  *Depends on:* T5. *Files:* `sim/MatchSimulation.ts`, `drawing/drawnObject.ts`
-  + tests. *Scope:* S.
+  *Depends on:* T5. *Files:* `sim/MatchSimulation.ts` + tests. *Scope:* S.
+
+  **Landed.** `damageDrawnObject` takes **no attacker argument**. A structure
+  belongs to the world rather than to whoever drew it (RD-07), so any player
+  may break any wall — and with nothing there to consult, ownership cannot
+  creep in later by accident. That is a stronger guarantee than a test of it
+  would be.
+
+  The damage tests first assumed a wall's base health and failed at 58 against
+  an expected 40: the `wall-clean` fixture grades *keen*, so its health is
+  scaled. They now read the structure's own `maxHealth`, which is both correct
+  and indifferent to how the fixtures are later tuned.
 
 - [ ] **T10 — Drawn objects render.**
   Greybox meshes for wall and bridge, the ghost material, quality tinting, and a

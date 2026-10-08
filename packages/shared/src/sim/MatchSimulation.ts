@@ -5,7 +5,13 @@ import { NETWORK } from '../config/network';
 import { FIXED_DT } from '../config/simulation';
 import type { BlueprintId, Quality } from '../drawing/blueprint';
 import { blueprintById } from '../drawing/blueprints/registry';
-import type { DrawnObject, DrawnStructure, DrawnWeapon } from '../drawing/drawnObject';
+import {
+  damage,
+  isDestroyed,
+  type DrawnObject,
+  type DrawnStructure,
+  type DrawnWeapon,
+} from '../drawing/drawnObject';
 import { spawnDrawnObject } from '../drawing/spawn';
 import { chalkDebitFor, toDrawingResultOutcome, type DrawingResult } from '../drawing/result';
 import type { Sketch } from '../drawing/types';
@@ -193,6 +199,24 @@ export class MatchSimulation {
       solidFromTick: object.solidFromTick,
       health: object.health,
     }));
+  }
+
+  /**
+   * Damages a structure, destroying it when its health runs out (RD-07).
+   *
+   * There is deliberately **no attacker argument**. A structure belongs to
+   * the world, not to whoever drew it, so any player may break any wall — and
+   * with nothing here to consult, ownership cannot creep in later by
+   * accident. Phase 5 supplies the blows; this is the arithmetic they will
+   * land on.
+   */
+  damageDrawnObject(id: number, amount: number): 'damaged' | 'destroyed' | 'missing' {
+    const structure = this.structures.get(id);
+    if (!structure) return 'missing';
+    damage(structure, amount);
+    if (!isDestroyed(structure)) return 'damaged';
+    this.removeDrawnObject(id);
+    return 'destroyed';
   }
 
   /**
