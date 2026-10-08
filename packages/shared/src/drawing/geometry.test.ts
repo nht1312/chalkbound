@@ -6,6 +6,7 @@ import {
   dominantAngle,
   endpointDistance,
   endpointGap,
+  meanTemplateDistance,
   polylineCrossing,
   straightness,
 } from './geometry';
@@ -205,5 +206,77 @@ describe('polylineCrossing', () => {
       { x: -0.2, y: 0 },
     ];
     expect(polylineCrossing(blade(), zigzag)?.atA).toBeCloseTo(0.2, 2);
+  });
+});
+
+
+/**
+ * A closed stroke has no canonical start: a player tracing a rectangle may
+ * begin at any corner and go either way round, and it is the same rectangle.
+ * Open strokes are the opposite — a blade started from its middle is a
+ * different stroke — so rotation is allowed only where the *template* says
+ * the shape is a loop.
+ */
+describe('meanTemplateDistance over closed strokes', () => {
+  /** A wide rectangle as one closed stroke, begun at corner `start`. */
+  function rectangle(start: number, clockwise = true, perSide = 8): Point2[] {
+    const corners = [
+      { x: -0.5, y: -0.25 },
+      { x: 0.5, y: -0.25 },
+      { x: 0.5, y: 0.25 },
+      { x: -0.5, y: 0.25 },
+    ];
+    const order = clockwise ? corners : [...corners].reverse();
+    const out: Point2[] = [];
+    for (let side = 0; side < 4; side++) {
+      const from = order[(start + side) % 4] as Point2;
+      const to = order[(start + side + 1) % 4] as Point2;
+      out.push(...line(from, to, perSide).slice(0, -1));
+    }
+    out.push(out[0] as Point2);
+    return out;
+  }
+
+  const template = [rectangle(0)];
+
+  it('recognises the same rectangle whichever corner it was begun at', () => {
+    for (let start = 0; start < 4; start++) {
+      expect(
+        meanTemplateDistance([rectangle(start)], template),
+        `started at corner ${start}`,
+      ).toBeLessThan(0.05);
+    }
+  });
+
+  it('recognises it drawn the other way round, from any corner', () => {
+    for (let start = 0; start < 4; start++) {
+      expect(
+        meanTemplateDistance([rectangle(start, false)], template),
+        `anticlockwise from corner ${start}`,
+      ).toBeLessThan(0.05);
+    }
+  });
+
+  it('still separates a different closed shape from the rectangle', () => {
+    expect(meanTemplateDistance([circle(0.4)], template)).toBeGreaterThan(0.08);
+  });
+
+  it('does NOT rotate an open template, so a stroke begun mid-way still misses', () => {
+    // The sword's blade. Starting half way along it is a different stroke,
+    // and allowing rotation here would quietly accept one.
+    const blade = line({ x: 0, y: 0.5 }, { x: 0, y: -0.5 }, 32);
+    const begunMidway = [...blade.slice(16), ...blade.slice(0, 16)];
+    expect(meanTemplateDistance([begunMidway], [blade])).toBeGreaterThan(0.2);
+  });
+
+  it('is unchanged for open strokes that line up, in either direction', () => {
+    const blade = line({ x: 0, y: 0.5 }, { x: 0, y: -0.5 }, 32);
+    expect(meanTemplateDistance([blade], [blade])).toBeCloseTo(0, 9);
+    expect(meanTemplateDistance([[...blade].reverse()], [blade])).toBeCloseTo(0, 9);
+  });
+
+  it('still refuses to compare mismatched stroke counts', () => {
+    expect(meanTemplateDistance([rectangle(0), rectangle(1)], template)).toBe(Infinity);
+    expect(meanTemplateDistance([], template)).toBe(Infinity);
   });
 });

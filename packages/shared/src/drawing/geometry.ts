@@ -1,3 +1,4 @@
+import { DRAWING } from '../config/drawing';
 import { pathLength } from './normalize';
 import type { Point2 } from './types';
 
@@ -194,6 +195,14 @@ function segmentIntersection(
  * better, so draw direction does not matter, and `Infinity` says the two
  * cannot be compared at all.
  *
+ * A **closed** template stroke is also matched at every rotation, because a
+ * loop has no canonical start: a player tracing a rectangle may begin at any
+ * corner and it is the same rectangle. Without this, five of a wall's eight
+ * natural traversals score as a different shape entirely. Rotation is keyed
+ * off the *template*, never the drawing — the blueprint is what declares the
+ * shape a loop, and allowing it for open strokes would quietly accept a blade
+ * begun half way along itself.
+ *
  * Shared by the `TemplateDistance` constraint and the classifier's soft score.
  */
 export function meanTemplateDistance(
@@ -207,13 +216,54 @@ export function meanTemplateDistance(
     const drawn = strokes[i];
     const want = template[i];
     if (!drawn || !want) return Infinity;
-    total += Math.min(
-      meanPointDistance(drawn, want),
-      meanPointDistance(drawn, [...want].reverse()),
-    );
+    total += isClosedPath(want)
+      ? bestCyclicDistance(drawn, want)
+      : Math.min(meanPointDistance(drawn, want), meanPointDistance(drawn, [...want].reverse()));
     counted++;
   }
   return counted === 0 ? Infinity : total / counted;
+}
+
+/** The same test `extractDiscriminators` uses, so "closed" means one thing. */
+function isClosedPath(points: readonly Point2[]): boolean {
+  return closureRatio(points) < DRAWING.closureGapRatio;
+}
+
+/**
+ * Best alignment of `drawn` against a closed `want` over every rotation and
+ * both directions. 2n² point comparisons — about 2,000 for the 32-point
+ * strokes normalization produces, which is nothing beside the classification
+ * it feeds.
+ */
+function bestCyclicDistance(drawn: readonly Point2[], want: readonly Point2[]): number {
+  const target = loopBody(want);
+  const source = loopBody(drawn);
+  let best = Infinity;
+  for (const candidate of [source, [...source].reverse()]) {
+    for (let shift = 0; shift < candidate.length; shift++) {
+      const distance = meanPointDistance(rotate(candidate, shift), target);
+      if (distance < best) best = distance;
+    }
+  }
+  return best;
+}
+
+/**
+ * A closed stroke's samples without its closing one. Resampling by arc length
+ * puts the last sample at the full length, which on a loop is the start again
+ * — so the distinct samples number one fewer than the array, and that is the
+ * period a rotation must step through. Keeping the duplicate would shift every
+ * rotation by a fraction of a sample and leave the best alignment slightly off.
+ */
+function loopBody(points: readonly Point2[]): readonly Point2[] {
+  return points.length >= 3 ? points.slice(0, -1) : points;
+}
+
+/** `points` begun `shift` samples later, wrapping around. */
+function rotate(points: readonly Point2[], shift: number): readonly Point2[] {
+  if (shift === 0) return points;
+  const n = points.length;
+  return Array.from({ length: n }, (_, i) => points[(i + shift) % n] as Point2);
 }
 
 function meanPointDistance(a: readonly Point2[], b: readonly Point2[]): number {
