@@ -1,5 +1,7 @@
+import type RAPIER from '@dimforge/rapier3d-compat';
 import { PerspectiveCamera } from 'three';
 import {
+  addDrawnCollider,
   createGreyboxRoom,
   createLoopbackPair,
   ECONOMY,
@@ -11,12 +13,14 @@ import {
   initialPlayerState,
   quantizeInputCommand,
   quantizeSketch,
+  removeDrawnCollider,
   SIMULATION_TIMESTEP,
   toDrawingResultOutcome,
   validateSketch,
   type Sketch,
 } from '@chalkbound/shared';
 import { CLIENT_CONFIG } from './config/client';
+import { DrawnObjects } from './drawing/DrawnObjects';
 import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
 import { FppCamera } from './camera/FppCamera';
 import { createViewmodel } from './hands/createViewmodel';
@@ -85,6 +89,14 @@ function bootstrap(): void {
   // state if a snapshot has already arrived.
   let physics: ClientPhysics | undefined;
   let predictor: PlayerPredictor | undefined;
+  /**
+   * Player-made geometry. The ghost fills the round trip between releasing
+   * the stroke and the authority's verdict; only a confirmed structure gets a
+   * collider in the prediction world, so this client never predicts movement
+   * against geometry the authority has not agreed to (SPEC_AUDIT R-03).
+   */
+  const drawn = new DrawnObjects();
+  const drawnColliders = new Map<number, RAPIER.Collider>();
   loadPhysics(level).then(
     (loaded) => {
       physics = loaded;
@@ -227,6 +239,10 @@ function bootstrap(): void {
       const local = validateSketch(quantizeSketch(drawEvent.sketch), { heldChalk: held });
       const hint = 'blueprintId' in local ? local.blueprintId : undefined;
       net.sendDrawing(drawEvent.sketch, hint);
+      // Show what we think we drew, without making it solid.
+      if (hint && local.kind === 'created') {
+        drawn.predict(hint, predictor?.state.position ?? level.spawn, look.yaw);
+      }
       drawingBanner.show(
         describeDrawingResult({
           outcome: toDrawingResultOutcome(local),
@@ -237,12 +253,27 @@ function bootstrap(): void {
     if (net.drawingResult && net.drawingResultCount !== shownDrawingResults) {
       shownDrawingResults = net.drawingResultCount;
       drawingBanner.show(describeDrawingResult(net.drawingResult));
+      // A verdict that built nothing leaves a ghost with nothing to become.
+      if (net.drawingResult.outcome.kind !== 'created') drawn.abandonPending();
     }
     drawingBanner.update(frameDelta);
     codex.update(input.isDown('Codex'), net.chalk);
 
     if (predictor && net.authoritativePlayer && net.snapshotCount !== reconciledSnapshots) {
       reconciledSnapshots = net.snapshotCount;
+      // Bring the collision world up to date *before* replaying predicted
+      // commands against it, or the replay runs against the previous world.
+      if (physics) {
+        const delta = drawn.reconcile(net.drawnObjects, net.serverTick);
+        for (const object of delta.added) {
+          drawnColliders.set(object.id, addDrawnCollider(physics.rapier, physics.world, object));
+        }
+        for (const id of delta.removed) {
+          const collider = drawnColliders.get(id);
+          if (collider) removeDrawnCollider(physics.world, collider);
+          drawnColliders.delete(id);
+        }
+      }
       predictor.reconcile(net.lastAckedSeq, net.authoritativePlayer);
     }
     const alpha = simulation.advance(frameDelta);

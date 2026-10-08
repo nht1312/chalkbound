@@ -282,7 +282,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   were silently refused; and an off-by-one where the snapshot emitted *on* the
   submission tick was already on its way out before the sketch was handed in.
 
-- [ ] **T7b — The client ghost and the solid transition (R-03).**
+- [x] **T7b — The client ghost and the solid transition (R-03).**
   Snapshots carry the drawn-object list (decision 2) and the codec encodes it.
   The client renders a translucent, non-colliding ghost from the moment it
   submits, swaps it for the confirmed object when the snapshot names it, and only
@@ -296,10 +296,26 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
     player is never corrected *through* a confirmed wall;
   - the ghost never collides.
 
-  *Depends on:* T6. *Files:* `protocol/messages.ts`, `protocol/codec.ts`,
-  `sim/MatchSimulation.ts`, `sim/SimulationHost.ts`, `client/net/NetClient.ts`,
-  `client/drawing/DrawnObjects.ts` + tests. *Scope:* L — **split if it grows past
-  five files.**
+  *Depends on:* T7a. *Files:* `client/drawing/DrawnObjects.ts`,
+  `client/net/NetClient.ts`, `client/main.ts` + tests. *Scope:* M.
+
+  **Landed.** The client collides neither early nor late: it shows a ghost
+  that is visible and never solid, and takes the collider only from the
+  authority. Both sides derive a structure's box from the blueprint rather
+  than sending it, and a test asserts the two agree to the millimetre —
+  without that, replaying prediction against the collider would be replaying
+  it against a *different wall*. Another test asserts the ghost stands exactly
+  where the real wall turns out to be, since a jump on confirmation is the
+  precise tell R-03 says the VFX window exists to hide.
+
+  `addDrawnCollider` was narrowed to take a transform and a size instead of
+  the authority's whole `DrawnStructure`. The client's view of a structure
+  carries neither health nor an author, and should not have to invent them to
+  ask for a collider.
+
+  The reconcile runs **before** `predictor.reconcile`, or the replay would run
+  against the previous collision world — which is the bug R-03 describes,
+  reintroduced by ordering.
 
 - [ ] **T8 — The sword reaches the hands, graded.**
   The equipped sword is visible in the viewmodel and carries its quality:

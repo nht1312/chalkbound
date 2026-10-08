@@ -2,15 +2,21 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import {
   ECONOMY,
   MatchSimulation,
+  SIMULATION,
   vec3,
   type LevelData,
   type Point2,
   type Sketch,
 } from '@chalkbound/shared';
-import { scribbleWaypoints, swordWaypoints } from '@chalkbound/shared/testing/drawing';
+import {
+  scribbleWaypoints,
+  swordWaypoints,
+  wallWaypoints,
+} from '@chalkbound/shared/testing/drawing';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { CLIENT_CONFIG } from '../config/client';
 import { DrawMode, type DrawModeConfig, type DrawModeEvent } from './DrawMode';
+import { DrawnObjects } from './DrawnObjects';
 
 /**
  * Phase 3 exit check (plan T10): the whole client drawing path, driven at
@@ -293,5 +299,97 @@ describe('Phase 3 exit: the loop costs what it should', () => {
       kind: 'refused',
       reason: 'no-chalk',
     });
+  });
+});
+
+/**
+ * Phase 4, R-03: player-made geometry versus client prediction.
+ *
+ * The risk is specific to CHALKBOUND and the audit calls it the most
+ * under-appreciated in the design. A wall exists on the authority from the
+ * tick it is built, but the client cannot know that for one round trip. If it
+ * guesses either way it is wrong: collide early and the player is stopped by
+ * nothing, collide late and they walk into a wall the server says is there.
+ *
+ * The answer is to collide neither early nor late — show a ghost that is
+ * visible and not solid, and take the collider only from the authority.
+ */
+describe('Phase 4: a drawn wall and client prediction', () => {
+  const LATENCY_TICKS = Math.round((150 / 1000) * SIMULATION.tickRate);
+
+  it('shows a ghost the instant the stroke is released', () => {
+    const drawn = new DrawnObjects();
+    drawn.predict('wall', vec3(0, 0, 0), 0);
+    expect(drawn.ghosts()).toHaveLength(1);
+    expect(drawn.solid()).toHaveLength(0);
+  });
+
+  it('keeps the ghost insubstantial for the whole round trip', () => {
+    const sim = authority();
+    const drawn = new DrawnObjects();
+    drawn.predict('wall', vec3(0, 0, 0), 0);
+    submit(sim, draw(wallWaypoints()));
+
+    // The verdict is in flight: the authority has a wall, the client has a
+    // ghost, and for every one of these ticks the client must stay unsolid.
+    for (let i = 0; i < LATENCY_TICKS; i++) {
+      sim.step();
+      expect(drawn.solid()).toHaveLength(0);
+      expect(drawn.ghosts()).toHaveLength(1);
+    }
+    expect(sim.drawnObjects()).toHaveLength(1);
+  });
+
+  it('becomes solid, and only once, when the snapshot finally arrives', () => {
+    const sim = authority();
+    const drawn = new DrawnObjects();
+    drawn.predict('wall', vec3(0, 0, 0), 0);
+    submit(sim, draw(wallWaypoints()));
+    for (let i = 0; i < LATENCY_TICKS; i++) sim.step();
+
+    const first = drawn.reconcile(sim.drawnObjectStates(), sim.tick);
+    expect(first.added).toHaveLength(1);
+    expect(drawn.ghosts()).toHaveLength(0);
+    expect(drawn.solid()).toHaveLength(1);
+
+    // Thirty snapshots a second must not mean thirty colliders a second.
+    for (let i = 0; i < 20; i++) {
+      sim.step();
+      expect(drawn.reconcile(sim.drawnObjectStates(), sim.tick).added).toEqual([]);
+    }
+  });
+
+  it('agrees with the authority about where the wall is, to the millimetre', () => {
+    const sim = authority();
+    submit(sim, draw(wallWaypoints()));
+    const theirs = sim.drawnObjects()[0];
+    const drawn = new DrawnObjects();
+    drawn.reconcile(sim.drawnObjectStates(), sim.tick);
+    const ours = drawn.solid()[0];
+    if (!theirs || !ours) throw new Error('expected a wall on both sides');
+
+    // Same box, same place: the only reason prediction can replay against it.
+    expect(ours.transform.position.x).toBeCloseTo(theirs.transform.position.x, 3);
+    expect(ours.transform.position.y).toBeCloseTo(theirs.transform.position.y, 3);
+    expect(ours.transform.position.z).toBeCloseTo(theirs.transform.position.z, 3);
+    expect(ours.transform.yaw).toBeCloseTo(theirs.transform.yaw, 3);
+    expect(ours.halfExtents).toEqual(theirs.halfExtents);
+  });
+
+  it('puts the ghost exactly where the real wall turns out to be', () => {
+    const sim = authority();
+    const drawn = new DrawnObjects();
+    // The same feet and facing the authority will use.
+    const feet = sim.playerState(1)?.position ?? vec3(0, 0, 0);
+    drawn.predict('wall', feet, 0);
+    const ghost = drawn.ghosts()[0];
+    submit(sim, draw(wallWaypoints()));
+    const real = sim.drawnObjects()[0];
+    if (!ghost || !real) throw new Error('expected a ghost and a wall');
+
+    // If these disagreed, the wall would visibly jump on confirmation — the
+    // exact tell R-03 says the VFX window exists to hide.
+    expect(ghost.position.x).toBeCloseTo(real.transform.position.x, 6);
+    expect(ghost.position.z).toBeCloseTo(real.transform.position.z, 6);
   });
 });

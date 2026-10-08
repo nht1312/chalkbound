@@ -25,6 +25,7 @@ export {
   type DrawingSubmission,
   type InputCommand,
   type ChalkBoxState,
+  type DrawnObjectState,
   type ClientMessage,
   type ServerMessage,
 } from './protocol/messages';
@@ -167,6 +168,11 @@ export {
   type Footprint,
 } from './drawing/placement';
 export { spawnDrawnObject, type SpawnGrade, type SpawnRequest } from './drawing/spawn';
+export {
+  addDrawnCollider,
+  removeDrawnCollider,
+  type CollidableStructure,
+} from './physics/drawnColliders';
 export { classify, type CandidateScore, type Classification } from './drawing/classify';
 export {
   grade,
