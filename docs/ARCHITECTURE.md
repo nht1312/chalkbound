@@ -666,7 +666,7 @@ MVP constraint library:
 | `Straightness` | path length ÷ endpoint distance, for lines |
 | `Direction` | dominant angle of stroke *k* within tolerance |
 | `RelativeLength` | length ratio between two strokes |
-| `Intersection` | stroke A crosses stroke B, optionally within a normalized position band |
+| `Intersection` | stroke A crosses stroke B, optionally within a normalized position band along A, measured from A's low end so draw order cannot move it (SPEC_AUDIT D-06a) |
 | `EndpointProximity` | end of A near start of B (connected forms) |
 | `Closure` | first and last point of a stroke are near each other |
 | `AspectRatio` | bounding-box width ÷ height in range |
@@ -724,7 +724,7 @@ export const SWORD: BlueprintTemplate = {
     direction(0, -90, 25),                     // blade roughly vertical
     straightness(1, 0.85),                     // crossguard straight
     direction(1, 0, 25),                       // crossguard roughly horizontal
-    intersection(0, 1, { at: [0.6, 0.9] }),    // crosses low on the blade
+    intersection(0, 1, { at: [0.1, 0.4] }),    // crosses low on the blade
     relativeLength(1, 0, [0.25, 0.55]),        // guard shorter than blade
     timing({ minMs: 250, maxMs: 6000 }),
     humanLikeness(),

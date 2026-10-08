@@ -58,13 +58,15 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   scale-invariant and rotation-*sensitive*; points are evenly spaced, the
   count is exact, and degenerate input is handled.
 
-- [ ] **T2 — Discriminators and the constraint library (shared).**
+- [x] **T2 — Discriminators and the constraint library (shared).**
   Discriminators: stroke count, intersection, closure, aspect, dominant angles.
   Constraints: `StrokeCount`, `Straightness`, `Direction`, `RelativeLength`,
   `Intersection` (with a position band), `EndpointProximity`, `Closure`,
   `AspectRatio`, `TemplateDistance`, `Timing`, `HumanLikeness`. Each returns a
   score, a pass flag, and a stable failure code.
   *Accept:* a table-driven test per constraint.
+  Landed in `drawing/geometry.ts`, `drawing/discriminators.ts` and
+  `drawing/constraints.ts`. Decisions recorded as SPEC_AUDIT D-06.
 
 - [ ] **T3 — Blueprints, classifier, validator (shared).**
   - The sword `BlueprintTemplate` as data, and a registry.
@@ -151,7 +153,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   chalk cost, and whether you can afford it (from authoritative chalk).
   *Accept:* tests for affordability and for generating the shape diagram.
 
-- [x] **T10 — Phase 3 exit check.**
+- [ ] **T10 — Phase 3 exit check.**
   - A headless probe picks up chalk, draws a sword through draw mode and gets
     `created` (−20 chalk). A scribble gets `unrecognized` (−5).
   - Pointer lock holds throughout.

@@ -795,6 +795,22 @@ with no UI and no real items; the sword (Phase 4) is its first user.
 
 ---
 
+### D-06 — Phase 3 constraint-library decisions (T2) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Crossing position | `Intersection`'s `at` band is measured from a stroke's **low end** — smaller y, ties broken by smaller x — not from the point the player drew first | Draw order is not part of a shape (plan decision 7), but orientation is. The hilt end of a vertical blade is at 0 whichever way it was drawn, so `[0.1, 0.4]` means "crosses low on the blade" and an upside-down sword still fails. ARCHITECTURE §6.6's example band was written under the opposite assumption and has been corrected |
+| b | Undirected everywhere | Angles fold into `[-pi/2, pi/2)`; `EndpointProximity` takes the closest of all four endpoint pairings; `TemplateDistance` matches each stroke in whichever direction fits better | One rule, applied consistently: a stroke drawn backwards is the same stroke |
+| c | Dominant angle | Principal axis from second moments, not the endpoint chord | A wobbly stroke still reports the orientation a player would read off it. **Caveat for T3:** the axis of an isotropic shape (a circle) is numerically arbitrary, so soft scoring must not weight angle agreement for round blueprints |
+| d | Pass flag | A constraint passes exactly when its score is above zero; the score's zero point *is* the structural limit | Keeps ARCHITECTURE §6.4's two gates meaningful without a second threshold per constraint: the flag is structural, `minAccuracy` is quality |
+| e | Band shape | A value scores 1 across the inner 50% of its tolerance band and ramps to 0 at the edges, which are exclusive [PLACEHOLDER] | A drawing well inside tolerance should not lose accuracy for being off-centre |
+| f | Ratio bands | `RelativeLength` and `AspectRatio` score in log space | A band like `[0.25, 0.55]` is symmetric about its geometric centre, so being half as long is penalised like being twice as long |
+| g | Closure | Measured as endpoint gap over the stroke's own path length, not an absolute distance | Scale-free: a small circle and a large one read the same, and a short stroke is not called closed just for being short |
+| h | `HumanLikeness` | Scored 1 or 0, never graded, and deliberately lenient: fails only on non-advancing time, a cursor above 15 m/s, or inter-sample speed variation under 0.08 | A steady hand is not a defect. Wrongly calling a real player a machine is far worse than letting a script through in a game with no competitive economy. It uses timing irregularity rather than path wobble precisely so it cannot punish accurate drawing |
+| i | Degenerate input | Every constraint returns a `missing-stroke` failure rather than throwing when a referenced stroke is absent | The authority runs these on attacker-controlled input (T5); a throw would be a denial of service |
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

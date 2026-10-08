@@ -97,3 +97,39 @@ export type {
   Stroke,
 } from './drawing/types';
 export { normalizeSketch, pathLength, resampleStroke } from './drawing/normalize';
+export {
+  angleDifference,
+  canonicalAngle,
+  dominantAngle,
+  polylineCrossing,
+  type Crossing,
+} from './drawing/geometry';
+export {
+  classifyAspect,
+  discriminatorDistance,
+  extractDiscriminators,
+  type AspectClass,
+  type Discriminators,
+} from './drawing/discriminators';
+export {
+  aspectRatio,
+  bandScore,
+  closure,
+  direction,
+  endpointProximity,
+  humanLikeness,
+  intersection,
+  logBandScore,
+  ramp,
+  relativeLength,
+  straightness,
+  strokeCount,
+  templateDistance,
+  timing,
+  type Constraint,
+  type ConstraintFailure,
+  type ConstraintResult,
+  type FailureCode,
+  type IntersectionOptions,
+  type TimingRange,
+} from './drawing/constraints';
