@@ -41,7 +41,13 @@ export const CREATION = {
     span: 4,
     width: 1.5,
     thickness: 0.2,
-    /** Small, so the near edge is a step away and can be walked straight on. */
-    gapM: 0.2,
+    /**
+     * **Negative**: the deck's near edge sits this far *behind* the drawer's
+     * feet, so it is anchored on the ground they are standing on rather than
+     * beginning out over the drop. Someone bridging a gap stands at its lip,
+     * and a deck that started ahead of them would put a hole exactly where
+     * their first step lands. [PLACEHOLDER]
+     */
+    gapM: -0.5,
   },
 } as const;

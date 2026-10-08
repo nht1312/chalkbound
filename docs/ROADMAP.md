@@ -1,7 +1,7 @@
 # CHALKBOUND — Development Roadmap
 
 **Date:** 2026-10-07
-**Status:** Phases 0–2 implemented (2026-10-07). Phase 1 feel was tuned once (jump, hands); Phase 2 awaits the user's play check. Later phases are proposals.
+**Status:** Phases 0–4 implemented (Phase 4 on 2026-10-08). Phase 1 feel was tuned once (jump, hands); Phase 2 awaits the user's play check. Later phases are proposals.
 **Rule (prompt §11):** each phase requires explicit approval before it starts.
 Completing one phase does not authorize the next.
 
@@ -310,6 +310,24 @@ and server with no rubber-banding, including under injected latency. A drawn
 bridge can be crossed without falling through. **Adding a blueprint required no
 change to validator code** — the prompt §7 requirement, verified by actually
 doing it twice.
+
+**Met 2026-10-08.** All three spawn and behave: the sword reaches the hand, the
+wall stops the player who drew it, and the bridge is walked across a trench cut
+into the greybox floor for it — verified by the suite and end to end in a real
+browser by `pnpm probe:creation` at 150 ms one-way and 5% loss. The confusion
+matrix is clean, and the rejection rate is printed by the corpus run: 0.0% of
+sketches that meant something, 92.9% of those that meant nothing.
+
+The validator-code criterion is met **with one recorded exception, approved
+before it was taken**. Adding the wall and the bridge changed no validator
+logic — `classify`, `validate`, `constraints`, `discriminators`, `normalize`,
+`geometry` and `result` are untouched by that commit, and only three typed
+registration tables needed an entry each, every one of them named by the
+compiler. But the wall could not be added at all until `meanTemplateDistance`
+learned to match closed strokes at every rotation (D-15): a loop has no
+canonical start, so six of a rectangle's eight natural traversals scored as a
+different shape. That is a gap any closed blueprint would hit rather than
+wall-specific code, and it landed as its own commit before the wall did.
 
 ### Tests
 

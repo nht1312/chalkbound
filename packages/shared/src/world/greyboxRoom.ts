@@ -39,6 +39,14 @@ const DESK = {
   height: 0.75,
   rows: 3,
   columns: 3,
+  /**
+   * Leaves a 0.8 m aisle between desk columns, against a 0.6 m player
+   * capsule — a tenth of a metre either side, which snags on every corner.
+   * Widening it to 2.4 was tried and **reverted**: it opens a straight run
+   * from the spawn to the floor gap, and the prediction test then walks into
+   * it and diverges 28 m from the authority during the fall. That divergence
+   * is worth understanding before the aisles are widened. [PLACEHOLDER]
+   */
   spacingX: 2,
   spacingZ: 1.6,
   offsetZ: 0.5,
@@ -135,7 +143,7 @@ export function createGreyboxRoom(): LevelData {
   }
 
   // Chalk: on the front-left desk, in the back-left corner, and on the floor
-  // below the blackboard (the chalk tray of SPEC §5).
+  // at the end of the spawn aisle (the chalk tray of SPEC §5).
   const onFloor = CHALK_BOX_SIZE.height / 2;
   const chalkBoxes: ChalkBoxSpawn[] = [
     {
@@ -143,8 +151,12 @@ export function createGreyboxRoom(): LevelData {
       position: vec3(-DESK.spacingX, DESK.height + onFloor, -DESK.spacingZ + DESK.offsetZ),
     },
     { id: 2, position: vec3(-halfW + 0.5, onFloor, halfD - 0.5) },
-    // On the far side of the trench: the chalk tray is bridge-gated.
-    { id: 3, position: vec3(1.5, onFloor, -halfD + 0.4) },
+    // In the aisle, a step short of the trench. It sat below the blackboard
+    // until the trench was cut between the desks and that wall, which put it
+    // out of reach of anyone without a bridge — including the Phase 3 probe,
+    // whose walk is a straight line down this aisle. The far side holds
+    // nothing yet; Phase 6 can give it a reason to be crossed.
+    { id: 3, position: vec3(1, onFloor, FLOOR_GAP.toZ + 0.4) },
   ];
 
   // Spawn in the aisle between the first two desk columns, facing the blackboard (-Z).

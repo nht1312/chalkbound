@@ -374,6 +374,12 @@ function bootstrap(): void {
             validateSketch(quantizeSketch(sketch), { heldChalk }),
         },
         predictor: () => predictor,
+        // Player-made geometry, for the Phase 4 probe: what this client
+        // believes is solid, and what it is still only hoping for.
+        drawn: {
+          solid: () => drawn.solid(),
+          ghosts: () => drawn.ghosts(),
+        },
       },
     });
   }

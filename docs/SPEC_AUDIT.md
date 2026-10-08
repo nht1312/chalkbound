@@ -967,6 +967,91 @@ lock held across both.
 
 ---
 
+### D-15 - Closed strokes have no start (Phase 4, T1a) - **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Closed template strokes match at **every rotation** | `meanTemplateDistance` tries all phase offsets for a stroke the *template* declares closed | A loop has no canonical beginning. Measured against a provisional wall, two of eight natural traversals classified at 0.978 and the other six were refused at 0.393, under the 0.50 floor. The sword never exposed this because both its strokes are open |
+| b | Rotation keys off the **template**, never the drawing | A blueprint declares the shape a loop; a sketch does not get to claim it | Rotating an open stroke would quietly accept a blade begun half way along itself. There is a test for exactly that |
+| c | The period is one fewer than the sample count | A loop's last sample is its first, so the duplicate is dropped before rotating | Keeping it shifts every rotation by a fraction of a sample. It scored 0.052 against a 0.05 bar - close enough to look like tolerance and not be |
+| d | This is the **exception** to the Phase 4 exit criterion | Recorded here rather than quietly taken; approved before implementing | The criterion says adding a blueprint needs no validator change. This is a gap any closed blueprint would hit, not wall-specific code, and the wall itself landed next as data only |
+
+### D-16 - Phase 4 blueprint-set decisions (T1) - **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | A circle is a **badly drawn wall**, not nothing | It shares the wall's topology - one stroke, no crossing, closed - so classification offers the wall and grading refuses it on proportions | "That shape is wrong" is more use than "unreadable", and costs less chalk. Phase 3's plan already allowed it ("unrecognized or smudged, never a wrong `created`"); only the sword existed to test it then. The absolute guarantee is unchanged and still asserted: nothing that is not a blueprint is ever **created** |
+| b | The bridge's taught rail gap is **narrow** | 0.1 rather than 0.15, so the two stroke orders stay close under template matching | Its two rails are interchangeable, which no other blueprint's strokes are - the sword's guard is told from its blade by length. "Upper first" is a convention, not a shape, so drawing the lower rail first reads as a bridge one grade down instead of being refused. A test asserts it never grades *higher* than the taught order |
+| c | Fixtures are bound by the chalk plane | Wall and bridge fixtures were rescaled to fit the 0.8 m plane | The first ones were a metre across and quantized out of range. Blueprint *references* are unitless and normalized before use, so they stay at 1.0; only fixtures are bound |
+
+### D-17 - Phase 4 creation decisions (T3-T5) - **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | **Placement never fails** | A structure whose transform overlaps existing geometry is placed anyway; the only adjustment keeps it clear of the drawer's own capsule | Chalk is spent before placement runs, and there is no refund path (SPEC 6.6). Refusing would create a "paid and got nothing" case the locked four-outcome model has no room for |
+| b | A walkable deck reaches **back under the drawer's feet** | `standOn` footprints take a negative gap; something that stands up keeps its capsule clearance | Found by the exit probe. Someone bridging a gap stands at its lip, and a deck that began half a metre ahead left a hole exactly where their first step landed - they fell into the thing they drew to cross |
+| c | `scaleFromAccuracy` **removed** from `SpawnDescriptor` | Quality scales stats uniformly for every blueprint, never dimensions | The flag was declared, set three times and read nowhere, and its own comment deferred it to this registry. A reach that varied with handwriting would be a competitive variable the player cannot see |
+| d | Drawn geometry joins the **player's existing** movement filter | Not a filter of its own | The moment movement treats a drawn wall differently from a built one, prediction and authority part company - which is R-03 |
+| e | Weapons go to a dedicated `equipped` slot | Not into the inventory, which stays unused by the simulation until Phase 9 | SPEC 6.8 is explicit that a step between the drawing and the holding wastes the signature moment |
+| f | A second sword **replaces** the first | Destroyed, not dropped | One pair of hands. Dropping needs a world-item form nothing else in the MVP wants yet |
+
+### D-18 - `solidFromTick` is asserted, not mechanised (Phase 4, T7) - **PENDING APPROVAL**
+
+`ARCHITECTURE.md` 5.5 describes a tick-indexed collider set: a client replaying
+predicted commands includes a drawn object's collider only for ticks at or
+after its `solidFromTick`.
+
+**Under this snapshot design that machinery has nothing left to do.** A
+snapshot describes the world at `serverTick`, and replay always restarts from a
+snapshot, so every object a client knows about is *already* solid for every
+tick it will replay. The tick is stamped and sent, and the invariant is
+asserted - across many snapshots, three structures drawn at different ticks,
+150 ms latency and 10% loss, and again from the client's side - rather than
+built.
+
+This is the one place Phase 4 knowingly implements **less** than ARCHITECTURE
+describes, which is why it is recorded. If the invariant ever fails, the
+mechanism 5.5 names is the fix, and those tests are what will say so.
+
+Both sides derive a structure's box from its blueprint rather than sending it,
+and a test asserts the two agree to the millimetre: without that, replaying
+prediction against the collider would be replaying it against a different wall.
+
+### D-19 - Phase 4 exit-check decisions (T11) - **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | The chalk tray moved out of the trench | Box 3 sits at the end of the spawn aisle rather than below the blackboard | The trench was cut between the desks and that wall, which put the tray beyond a gap nobody can cross yet - including the Phase 3 probe, whose walk is a straight line down that aisle. The far side holds nothing for now; Phase 6 can give it a reason to be crossed |
+| b | The probe walks the **west lane** | Not the desk aisles | The aisles are 0.8 m between desk columns and the player capsule is 0.6 m across. West of x = -2.6 the floor is clear for 2.4 m, and the trench spans the full width, so it can be crossed from anywhere. Threading desks was the single largest source of flakiness |
+| c | Calibration measures from the plane's **own edge** | The cursor is parked on the left edge, then moved a known number of pixels | The cursor is clamped to the drawable area, and a measurement that runs into that clamp reads as a huge movement for a small one. Every stroke after it is then drawn at the wrong scale - which looks exactly like the game failing to recognise a sword, and is not. This cost two debugging rounds, and is why the check now asserts the measurement stayed *inside* the area |
+| d | Strokes carry collinear midpoints | A waypoint half way along each long leg | The in-page draw steers toward its target each frame, and SwiftShader's frame pacing wanders enough that one long leg bows out and fails `Straightness`. The midpoint pulls it back onto the line |
+| e | The probe empties the room first | All three chalk boxes before drawing anything | One box is 25 chalk and the three blueprints cost 60 between them. Collecting as it went produced a real `unaffordable` verdict mid-probe - correct behaviour, useless as a test |
+
+**Not yet CI-grade.** The probe passes, and passed several consecutive runs,
+but roughly one run in four still fails on input delivery rather than on the
+game. The retries added for that are deliberately narrow: a sketch is redrawn
+only when the *client's own validator* agrees the strokes came out wrong, never
+when the authority refuses something the client read as good. Retrying the
+latter would hide the disagreement this probe exists to catch, so it is
+reported as a failure instead.
+
+**A level change was tried and reverted.** Widening the desk aisles from 0.8 m
+to 1.2 m made navigation far more reliable, and 0.8 m against a 0.6 m capsule
+is unpleasant to walk. But it opens a straight run from the spawn into the
+floor gap, and `PlayerPredictor`'s loopback test then walks into it and
+diverges 28 m from the authority during the fall. Prediction and authority
+parting company during a long fall under loss is worth understanding before
+the aisles are widened.
+
+**Measured.** Through the real client at 150 ms one-way and 5% loss: a sword at
+accuracy 1.00, keen, 26 durability, arriving in the hand and leaving nothing in
+the world; a wall at 0.98, keen, solid on both sides, stopping the player who
+drew it after 1.48 m; a bridge at 0.999, keen, walked from the trench lip to
+the far side with a lowest recorded height of 0.02 m. Nothing was ever solid on
+the client before the tick it became solid.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

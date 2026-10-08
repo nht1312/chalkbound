@@ -12,8 +12,8 @@ const FEET = vec3(0, 0, 0);
 
 /** A wall-ish slab: thin front to back, tall, standing on the floor. */
 const SLAB: Footprint = { halfExtents: vec3(1, 1.25, 0.1), gapM: 1.5, standOn: false };
-/** A bridge-ish deck: long front to back, flat, walked on. */
-const DECK: Footprint = { halfExtents: vec3(0.75, 0.1, 2), gapM: 0.2, standOn: true };
+/** A bridge-ish deck: long front to back, flat, walked on, anchored behind. */
+const DECK: Footprint = { halfExtents: vec3(0.75, 0.1, 2), gapM: -0.5, standOn: true };
 
 describe('forwardFromYaw', () => {
   /**
@@ -64,16 +64,35 @@ describe('placeStructure', () => {
   /**
    * The one adjustment placement makes (plan decision 1). Placement never
    * fails — there is no refund path — so the only thing it must guarantee is
-   * that the player is not sealed inside what they just drew.
+   * that the player is not sealed inside something that stands up.
    */
-  it('never leaves the player inside the thing they drew', () => {
-    for (const footprint of [SLAB, DECK]) {
-      for (const yaw of [0, 1, 2, 3, -1, -2]) {
-        const { position } = placeStructure(FEET, yaw, footprint);
-        const gap = Math.hypot(position.x, position.z) - footprint.halfExtents.z;
-        expect(gap, `yaw ${yaw}`).toBeGreaterThanOrEqual(MOVEMENT.capsule.radius);
-      }
+  it('never leaves the player inside a thing that stands up', () => {
+    for (const yaw of [0, 1, 2, 3, -1, -2]) {
+      const { position } = placeStructure(FEET, yaw, SLAB);
+      const gap = Math.hypot(position.x, position.z) - SLAB.halfExtents.z;
+      expect(gap, `yaw ${yaw}`).toBeGreaterThanOrEqual(MOVEMENT.capsule.radius);
     }
+  });
+
+  /**
+   * A surface the player walks on is the opposite case, and the distinction
+   * is load-bearing. Someone bridging a gap stands at its lip; a deck that
+   * began even half a metre ahead of them would leave a hole exactly where
+   * their first step lands, and they would fall into the thing they drew to
+   * cross. It has to reach back under their feet.
+   */
+  it('reaches back under the feet of whoever drew it', () => {
+    for (const yaw of [0, 1, 2, 3, -1, -2]) {
+      const { position } = placeStructure(FEET, yaw, DECK);
+      const nearEdge = Math.hypot(position.x, position.z) - DECK.halfExtents.z;
+      expect(nearEdge, `yaw ${yaw}`).toBeLessThan(0);
+    }
+  });
+
+  it('still reaches well past the player on the far side', () => {
+    const { position } = placeStructure(FEET, 0, DECK);
+    const farEdge = Math.hypot(position.x, position.z) + DECK.halfExtents.z;
+    expect(farEdge).toBeGreaterThan(DECK.halfExtents.z);
   });
 
   it('keeps the requested clearance in front of the player capsule', () => {

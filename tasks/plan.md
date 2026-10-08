@@ -387,7 +387,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   **The manual check is outstanding** — how the three quality bands read apart
   cannot be judged headlessly.
 
-- [ ] **T11 — Phase 4 exit check.**
+- [x] **T11 — Phase 4 exit check.**
   A headless probe draws all three blueprints end to end: the sword equips, the
   wall blocks, the bridge is crossed — under injected latency and loss, as the
   Phase 2 and 3 probes do. Docs updated: ROADMAP exit criteria marked with what
@@ -398,7 +398,51 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   150 ms / 5% loss.
 
   *Depends on:* all. *Files:* `tools/probe/creation.mjs`, `package.json`,
-  `docs/{ROADMAP,SPEC_AUDIT,ARCHITECTURE}.md`. *Scope:* M.
+  `docs/{ROADMAP,SPEC_AUDIT,ARCHITECTURE}.md`, `drawing/placement.ts`,
+  `config/creation.ts`, `world/greyboxRoom.ts`, `tools/probe/drawing.mjs`.
+  *Scope:* M, and it found more than it was meant to.
+
+  **Landed.** `pnpm probe:creation` draws all three blueprints end to end in a
+  real browser at 150 ms one-way and 5% loss: the sword reaches the hand, the
+  wall stops the player who drew it, and the bridge is walked across the
+  trench. `pnpm probe:drawing` still passes. Docs updated — ROADMAP exit
+  criteria marked with what was actually verified, SPEC_AUDIT D-15…D-19, and
+  ARCHITECTURE §5.5 annotated with the decision not to build its mechanism.
+
+  **A real bug, found only by the probe.** A bridge's near edge sat half a
+  metre *ahead* of the drawer's feet, so a player standing at the lip of the
+  trench — which is exactly where anyone bridging a gap stands — stepped into
+  a hole before reaching their own bridge. A walkable deck now reaches back
+  under the feet that drew it. No unit test would have caught this: every one
+  of them placed the bridge on flat ground, where the gap is invisible.
+
+  **The Phase 3 probe had to be repaired too.** T6's trench cut the aisle its
+  walk goes down, stranding the chalk box it collects. The tray moved to the
+  near side; the far side now holds nothing, which Phase 6 can fix.
+
+  **Honest limitation: the probe is not yet CI-grade.** It passes, and it
+  passed several consecutive runs, but roughly one run in four still fails on
+  input delivery rather than on the game — a walk stalling short, or a stroke
+  coming out crooked under SwiftShader's frame pacing. Three rounds of fixes
+  took it from near-always-failing to mostly-passing: navigation and drawing
+  both moved **inside the page**, the drawing became **open-loop** (the cursor
+  is the sum of its deltas, so fixed per-frame deltas land exactly however the
+  frames are paced), and calibration now measures from the plane's own edge
+  rather than from wherever the cursor happened to sit. What remains is
+  bounded-retry territory, and the retries are deliberately narrow: a sketch
+  is redrawn only when the *client's own validator* agrees the strokes came
+  out wrong, never when the authority refuses something the client read as
+  good — retrying that would hide the exact bug this probe exists to catch.
+
+  **A level change was tried and reverted.** Widening the desk aisles from
+  0.8 m to 1.2 m made the probe's navigation far more reliable, and 0.8 m
+  against a 0.6 m capsule is genuinely unpleasant to walk. But it opens a
+  straight run from the spawn into the floor gap, and `PlayerPredictor`'s
+  loopback test then walks into it and diverges **28 m** from the authority
+  during the fall. That divergence is a finding in its own right — prediction
+  and authority parting company during a long fall under loss — and it should
+  be understood before the aisles are widened. The spacing is back at 2 and
+  the reason is recorded where it was changed.
 
 ---
 
@@ -444,7 +488,7 @@ has not yet been signed off.
    wire suite caught. Blueprint *references* are unitless and normalized before
    use, so they stay at 1.0; only fixtures are bound by the plane.
 
-## Open questions
+## Open questions 
 
 1. Does drawing a second sword **replacing** the first feel right, or should the
    submission be refused while one is held? Decision 5 picks replacement because

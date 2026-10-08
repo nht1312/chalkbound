@@ -10,9 +10,10 @@
 import { createReport, openPage, sleep, startPlaying, walkToChalkBox } from './lib.mjs';
 
 const url = process.argv[2] ?? 'http://localhost:5173/?latency=150&loss=0.05';
-/** Box 3 sits on the floor below the blackboard, at the end of the spawn aisle. */
+/** Box 3 sits on the floor at the end of the spawn aisle, short of the trench. */
 const NEAR_BOX = 3;
-const STOP_Z = -2.9;
+/** Stop before the floor gap: past this the aisle runs out (FLOOR_GAP.toZ). */
+const STOP_Z = -1.0;
 /** Long enough for a reliable submission and its verdict at 150 ms one-way. */
 const ROUND_TRIP_WAIT_MS = 1200;
 /**

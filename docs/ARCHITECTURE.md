@@ -503,6 +503,15 @@ commands include an object's collider only for ticks at or after that value, so
 client and server agree on the collision world at every replayed tick. Until
 confirmation the client shows a ghost with no collider.
 
+**Phase 4 note (SPEC_AUDIT D-18).** The tick-indexed collider set described
+above was not built, because under the snapshot design it has nothing left to
+do: a snapshot describes the world at `serverTick`, and replay always restarts
+from a snapshot, so every object a client knows about is already solid for
+every tick it will replay. The tick is stamped and sent, and the property is
+**asserted by test** instead - under latency, loss, and several structures
+built at different ticks. If that assertion ever fails, the mechanism above is
+the fix.
+
 ### 5.6 Loot, chalk, extraction
 
 Chalk spawns and loot containers are placed at authored spawn points with

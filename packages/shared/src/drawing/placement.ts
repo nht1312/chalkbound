@@ -24,7 +24,12 @@ export interface DrawnTransform {
 export interface Footprint {
   /** Half-extents in the object's own space; z runs away from the player. */
   readonly halfExtents: Vec3;
-  /** Clear space between the player's capsule and the object's near face. */
+  /**
+   * Where the near face sits. For something that stands up, this is clear
+   * space kept between the player's capsule and the face. For a surface the
+   * player walks on it is measured from their feet instead and may be
+   * **negative**, putting the near edge behind them — see `standOn`.
+   */
   readonly gapM: number;
   /** True for a surface the player walks on, which sits at their feet. */
   readonly standOn: boolean;
@@ -45,12 +50,19 @@ export function forwardFromYaw(yaw: number): { readonly x: number; readonly z: n
  *
  * The distance is measured to the object's *near face* rather than its
  * centre, so a deep shape like a bridge reaches away from the player instead
- * of swallowing them: a four-metre deck and a hand's-width slab both begin
- * the same short step ahead.
+ * of swallowing them: a four-metre deck and a hand's-width slab are placed by
+ * where they begin, not by where their middles land.
  */
 export function placeStructure(feet: Vec3, yaw: number, footprint: Footprint): DrawnTransform {
   const { halfExtents, gapM, standOn } = footprint;
-  const clearance = MOVEMENT.capsule.radius + Math.max(gapM, 0);
+  // Something that stands up is held clear of the capsule, so the player is
+  // never sealed inside their own sketch. A surface they walk on is the
+  // opposite case: it has to reach *back under their feet*, anchoring on the
+  // ground they are standing on. A deck that began even half a metre ahead
+  // would leave a hole exactly where someone standing at the lip of a gap
+  // takes their first step — they would fall into the thing they drew to
+  // cross.
+  const clearance = standOn ? gapM : MOVEMENT.capsule.radius + Math.max(gapM, 0);
   const distance = clearance + halfExtents.z;
   const forward = forwardFromYaw(yaw);
 
