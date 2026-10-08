@@ -87,7 +87,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   `drawing/validate.ts` and `drawing/fixtures.ts`, with the acceptance suite in
   `drawing/corpus.test.ts`. Decisions recorded as SPEC_AUDIT D-07.
 
-- [ ] **T4 — Wire format (shared).**
+- [x] **T4 — Wire format (shared).**
   - `DrawingSubmission`: int16 quantized, delta-encoded points, varint timing,
     and an advisory hint.
   - `quantizeSketch()`, so the client validates exactly what the server will
@@ -101,6 +101,12 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   - malformed input and limits are rejected;
   - the validator gives the same outcome on the client sketch and the decoded
     bytes for every fixture.
+
+  Landed in `protocol/bytes.ts` (byte I/O extracted from `codec.ts` and given
+  varints and a growable writer), `drawing/wire.ts`, `drawing/result.ts`, and
+  the `drawing` / `drawingResult` messages in `protocol/`. A 44-sample sword
+  is 140 bytes of sketch, 142 on the wire. Decisions recorded as
+  SPEC_AUDIT D-08.
 
 - [ ] **T5 — Authority: drawing submissions.**
   `MatchSimulation.submitDrawing()` validates against the player's chalk and

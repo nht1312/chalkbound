@@ -9,6 +9,8 @@ import {
   ProtocolError,
   quantizeInputCommand,
 } from './codec';
+import { swordSketch } from '../drawing/fixtures';
+import { quantizeSketch } from '../drawing/wire';
 import type { PlayerState } from '../sim/stepPlayer';
 import { Button, type InputCommand } from './messages';
 
@@ -76,6 +78,28 @@ describe('client messages', () => {
     expect(() => encodeClientMessage({ type: 'inputBatch', commands: tooMany })).toThrow(
       ProtocolError,
     );
+  });
+
+  it('round-trips a drawing submission as the quantized sketch', () => {
+    const submission = { type: 'drawing', sketch: swordSketch(102) } as const;
+    const decoded = decodeClientMessage(encodeClientMessage(submission));
+    expect(decoded).toEqual({ type: 'drawing', sketch: quantizeSketch(submission.sketch) });
+  });
+
+  it('carries an advisory hint, and omits the key when there is none', () => {
+    const sketch = swordSketch(102);
+    const withHint = decodeClientMessage(
+      encodeClientMessage({ type: 'drawing', sketch, hint: 'sword' }),
+    );
+    const without = decodeClientMessage(encodeClientMessage({ type: 'drawing', sketch }));
+    if (withHint.type !== 'drawing' || without.type !== 'drawing') throw new Error('wrong type');
+    expect(withHint.hint).toBe('sword');
+    expect('hint' in without).toBe(false);
+  });
+
+  it('keeps a submitted sword inside one small packet', () => {
+    const bytes = encodeClientMessage({ type: 'drawing', sketch: swordSketch(102) });
+    expect(bytes.byteLength).toBeLessThanOrEqual(160);
   });
 });
 
@@ -193,6 +217,17 @@ describe('server messages', () => {
       const decoded = decodeServerMessage(encodeServerMessage(snapshot));
       expect(decoded).toMatchObject({ player: flags });
     }
+  });
+
+  it('round-trips a drawing result', () => {
+    const message = {
+      type: 'drawingResult',
+      result: {
+        outcome: { kind: 'created', blueprintId: 'sword', accuracy: 0.8125, quality: 'keen' },
+        chalkDebited: 20,
+      },
+    } as const;
+    expect(decodeServerMessage(encodeServerMessage(message))).toEqual(message);
   });
 });
 

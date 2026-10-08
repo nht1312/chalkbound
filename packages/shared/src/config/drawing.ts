@@ -62,6 +62,33 @@ export const DRAWING = {
   closureGapRatio: 0.25,
 
   /**
+   * Wire limits and precision for a submitted sketch (plan T4, decision 5).
+   * The limits are a cap on what one player can make the authority decode,
+   * not a gameplay rule: a legitimate blueprint is nowhere near any of them.
+   */
+  wire: {
+    /** Most strokes one submission may carry. [PLACEHOLDER] */
+    maxStrokes: 8,
+    /** Most samples one stroke may carry. [PLACEHOLDER] */
+    maxPointsPerStroke: 256,
+    /**
+     * Plane coordinates travel as int16 multiples of this, in metres. Half a
+     * step is 0.25 mm on a plane 800 mm across — far below the tolerance of
+     * any constraint, and small enough that consecutive samples usually fit
+     * in a single delta byte. [PLACEHOLDER]
+     */
+    coordStepM: 0.0005,
+    /**
+     * Coordinates are clamped this far from the plane centre before
+     * quantizing. The drawable area is 0.8 m square (plan decision 8); the
+     * margin keeps a cursor sitting exactly on the edge from rounding out.
+     */
+    coordLimitM: 0.5,
+    /** Longest sketch the wire carries, in milliseconds. [PLACEHOLDER] */
+    maxDurationMs: 60_000,
+  },
+
+  /**
    * Anti-automation floors, deliberately lenient: wrongly calling a real
    * player a machine is far worse than letting a script through in a game with
    * no competitive economy yet. All [PLACEHOLDER], tuned by playing.

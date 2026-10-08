@@ -1,6 +1,15 @@
 import { NETWORK } from '../config/network';
+import {
+  blueprintFromWireId,
+  blueprintWireId,
+  readDrawingResult,
+  readSketch,
+  writeDrawingResult,
+  writeSketch,
+} from '../drawing/wire';
 import { dequantizeAngle, dequantizeUnit, quantizeAngle, quantizeUnit } from '../math/quantize';
 import type { PlayerState } from '../sim/stepPlayer';
+import { checkedInt, ProtocolError, Reader, Writer } from './bytes';
 import type { ChalkBoxState, ClientMessage, InputCommand, ServerMessage } from './messages';
 
 /** First byte of every message. Values are part of the wire format; never reuse one. */
@@ -10,6 +19,8 @@ const Tag = {
   Pong: 3,
   Snapshot: 4,
   Interact: 5,
+  Drawing: 6,
+  DrawingResult: 7,
 } as const;
 
 /** u32 seq, u32 tick, i8 moveX, i8 moveZ, u16 yaw, u16 pitch, u16 buttons. */
@@ -30,12 +41,8 @@ const PlayerFlag = {
   JumpHeld: 1 << 2,
   Sprinting: 1 << 3,
 } as const;
-const LITTLE_ENDIAN = true;
 
-/** Thrown for malformed or unknown messages. Receivers drop the message. */
-export class ProtocolError extends Error {
-  override name = 'ProtocolError';
-}
+export { ProtocolError } from './bytes';
 
 /**
  * The command exactly as the receiver will decode it. The client predicts with
@@ -77,6 +84,13 @@ export function encodeClientMessage(message: ClientMessage): Uint8Array {
     case 'interact':
       return new Writer(3).u8(Tag.Interact).u16(checkedInt(message.targetId, U16_MAX, 'targetId'))
         .bytes;
+    case 'drawing': {
+      const writer = new Writer(192)
+        .u8(Tag.Drawing)
+        .u8(message.hint === undefined ? 0 : blueprintWireId(message.hint));
+      writeSketch(writer, message.sketch);
+      return writer.bytes;
+    }
   }
 }
 
@@ -114,6 +128,17 @@ export function decodeClientMessage(data: Uint8Array): ClientMessage {
       reader.end();
       return message;
     }
+    case Tag.Drawing: {
+      const hintCode = reader.u8();
+      const hint = blueprintFromWireId(hintCode);
+      if (hintCode !== 0 && hint === undefined) {
+        throw new ProtocolError(`Unknown blueprint hint ${hintCode}`);
+      }
+      const sketch = readSketch(reader);
+      reader.end();
+      // `exactOptionalPropertyTypes`: no hint means no key, not an undefined one.
+      return hint === undefined ? { type: 'drawing', sketch } : { type: 'drawing', sketch, hint };
+    }
     default:
       throw new ProtocolError(`Unknown client message tag ${tag}`);
   }
@@ -141,6 +166,11 @@ export function encodeServerMessage(message: ServerMessage): Uint8Array {
           .u16(checkedInt(box.id, U16_MAX, 'chalk box id'))
           .u8(checkedInt(box.remaining, U8_MAX, 'chalk box remaining'));
       }
+      return writer.bytes;
+    }
+    case 'drawingResult': {
+      const writer = new Writer(16).u8(Tag.DrawingResult);
+      writeDrawingResult(writer, message.result);
       return writer.bytes;
     }
   }
@@ -172,6 +202,11 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
       reader.end();
       return message;
     }
+    case Tag.DrawingResult: {
+      const message = { type: 'drawingResult', result: readDrawingResult(reader) } as const;
+      reader.end();
+      return message;
+    }
     default:
       throw new ProtocolError(`Unknown server message tag ${tag}`);
   }
@@ -182,14 +217,6 @@ function readChalkBoxes(reader: Reader): ChalkBoxState[] {
   const boxes: ChalkBoxState[] = [];
   for (let i = 0; i < count; i++) boxes.push({ id: reader.u16(), remaining: reader.u8() });
   return boxes;
-}
-
-/** Throws unless `value` is an integer in [0, max], i.e. fits its wire field. */
-function checkedInt(value: number, max: number, field: string): number {
-  if (!Number.isInteger(value) || value < 0 || value > max) {
-    throw new ProtocolError(`${field} ${value} does not fit the wire format (0..${max})`);
-  }
-  return value;
 }
 
 /**
@@ -227,105 +254,4 @@ function readPlayerState(reader: Reader): PlayerState {
     sprinting: (flags & PlayerFlag.Sprinting) !== 0,
     stamina: { value: reader.f32(), regenDelay: reader.f32() },
   };
-}
-
-class Writer {
-  readonly bytes: Uint8Array;
-  private readonly view: DataView;
-  private offset = 0;
-
-  constructor(size: number) {
-    this.bytes = new Uint8Array(size);
-    this.view = new DataView(this.bytes.buffer);
-  }
-
-  u8(v: number): this {
-    this.view.setUint8(this.offset, v);
-    this.offset += 1;
-    return this;
-  }
-  i8(v: number): this {
-    this.view.setInt8(this.offset, v);
-    this.offset += 1;
-    return this;
-  }
-  u16(v: number): this {
-    this.view.setUint16(this.offset, v, LITTLE_ENDIAN);
-    this.offset += 2;
-    return this;
-  }
-  u32(v: number): this {
-    this.view.setUint32(this.offset, v, LITTLE_ENDIAN);
-    this.offset += 4;
-    return this;
-  }
-  f32(v: number): this {
-    this.view.setFloat32(this.offset, v, LITTLE_ENDIAN);
-    this.offset += 4;
-    return this;
-  }
-  f64(v: number): this {
-    this.view.setFloat64(this.offset, v, LITTLE_ENDIAN);
-    this.offset += 8;
-    return this;
-  }
-}
-
-class Reader {
-  private readonly view: DataView;
-  private offset = 0;
-
-  constructor(data: Uint8Array) {
-    this.view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  }
-
-  u8(): number {
-    this.need(1);
-    const v = this.view.getUint8(this.offset);
-    this.offset += 1;
-    return v;
-  }
-  i8(): number {
-    this.need(1);
-    const v = this.view.getInt8(this.offset);
-    this.offset += 1;
-    return v;
-  }
-  u16(): number {
-    this.need(2);
-    const v = this.view.getUint16(this.offset, LITTLE_ENDIAN);
-    this.offset += 2;
-    return v;
-  }
-  u32(): number {
-    this.need(4);
-    const v = this.view.getUint32(this.offset, LITTLE_ENDIAN);
-    this.offset += 4;
-    return v;
-  }
-  f32(): number {
-    this.need(4);
-    const v = this.view.getFloat32(this.offset, LITTLE_ENDIAN);
-    this.offset += 4;
-    return v;
-  }
-  f64(): number {
-    this.need(8);
-    const v = this.view.getFloat64(this.offset, LITTLE_ENDIAN);
-    this.offset += 8;
-    return v;
-  }
-
-  /** Rejects trailing bytes so every message has exactly one valid encoding. */
-  end(): void {
-    if (this.offset !== this.view.byteLength) {
-      throw new ProtocolError(`${this.view.byteLength - this.offset} unexpected trailing bytes`);
-    }
-  }
-
-  private need(n: number): void {
-    if (this.offset + n > this.view.byteLength) {
-      throw new ProtocolError('Message truncated');
-    }
-  }
 }

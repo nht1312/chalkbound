@@ -832,6 +832,27 @@ human-recorded fixtures land with it in T6–T7.
 
 ---
 
+### D-08 — Phase 3 wire-format decisions (T4) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Byte I/O extracted | `Writer`/`Reader`/`ProtocolError` moved out of `protocol/codec.ts` into `protocol/bytes.ts`, and `Writer` now grows on demand | The sketch format is variable-length, so it cannot be measured before it is written. `codec.ts` re-exports `ProtocolError`, so no caller changed |
+| b | Coordinate precision | int16 multiples of 0.5 mm, clamped to ±0.5 m [PLACEHOLDER] | Half a step is 0.25 mm on a plane 800 mm across — far below any constraint's tolerance, and coarse enough that consecutive samples fit in one delta byte. A sword is 140 bytes for 44 samples |
+| c | Durations are derived, never sent | `quantizeSketch()` and the decoder both recompute `Stroke.durationMs` and `Sketch.durationMs` from the points | The two fields can contradict the points they summarize. Deriving them costs nothing and removes a field a hostile client could lie in |
+| d | `quantizeSketch()` clamps but does not enforce limits | Out-of-plane coordinates are clamped; too many strokes or points is an *encode* error | It is a projection the client grades against, so it must always produce something. Over-limit sketches are the recorder's bug (T6) and fail loudly at the boundary |
+| e | Timing is per-stroke and monotonic | Each stroke's first timestamp is an absolute varint; later samples are varint deltas, and a delta that runs backwards is rejected | Works whether the recorder timestamps relative to the stroke or to the sketch, and the round trip is exact either way |
+| f | Only failure **codes** travel | `DrawingResult` carries `FailureCode[]`, not `ConstraintFailure[]`: the constraint's instance `kind` and English `detail` stay server-side | Player-facing wording is T7's job. Shipping copy from the authority would put the same sentence in two places and let them drift |
+| g | Accuracy travels as float32 | Not quantized to a byte | ~7 significant digits for a message sent at most once per drawing. A byte would make accuracy near a quality boundary read inconsistently while tuning |
+| h | Enum tables are keyed by their union | `Record<BlueprintId, number>`, `Record<FailureCode, number>`, and so on | Adding a blueprint or a failure code is a type error until it has a wire value, so a new case cannot silently fail to encode |
+| i | `ServerMessage` is no longer uniformly tick-stamped | `NetClient` now advances its clock only from messages that carry `serverTick` | A drawing result answers a request; it does not report the clock. Found by the compiler when the variant was added |
+
+**Known gap.** The ~100–150 byte target assumes roughly 40–50 samples. The T6
+recorder's sampling rate and minimum-distance filter decide the real number;
+the corpus already spans 88–352 bytes, and the limits in `DRAWING.wire` cap
+the worst case rather than the typical one.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

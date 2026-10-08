@@ -21,6 +21,7 @@ export * from './math/quantize';
 
 export {
   Button,
+  type DrawingSubmission,
   type InputCommand,
   type ChalkBoxState,
   type ClientMessage,
@@ -138,6 +139,7 @@ export type {
   BlueprintTemplate,
   DrawingOutcome,
   Quality,
+  RejectionReason,
   SpawnDescriptor,
 } from './drawing/blueprint';
 export { BLUEPRINTS, blueprintById } from './drawing/blueprints/registry';
@@ -150,3 +152,17 @@ export {
   type Grade,
   type ValidateOptions,
 } from './drawing/validate';
+export {
+  toDrawingResultOutcome,
+  type DrawingResult,
+  type DrawingResultOutcome,
+} from './drawing/result';
+export {
+  blueprintFromWireId,
+  blueprintWireId,
+  decodeDrawingResult,
+  decodeSketch,
+  encodeDrawingResult,
+  encodeSketch,
+  quantizeSketch,
+} from './drawing/wire';

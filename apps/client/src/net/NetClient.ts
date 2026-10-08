@@ -93,7 +93,10 @@ export class NetClient {
       return;
     }
 
-    this.serverTick = Math.max(this.serverTick, message.serverTick);
+    // Not every message is tick-stamped: a drawing result answers a request,
+    // it does not report the clock.
+    if ('serverTick' in message) this.serverTick = Math.max(this.serverTick, message.serverTick);
+
     switch (message.type) {
       case 'pong': {
         const sample = this.scheduler.now() - message.clientTime;

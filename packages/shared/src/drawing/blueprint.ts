@@ -8,6 +8,12 @@ export type BlueprintId = 'sword';
 /** How well it was drawn, which the created object wears visibly (SPEC §6.5). */
 export type Quality = 'crude' | 'sound' | 'keen';
 
+/**
+ * Why a sketch was refused outright rather than graded (SPEC §6.2 stage 2):
+ * nothing scored well enough, or two blueprints scored too close to separate.
+ */
+export type RejectionReason = 'below-floor' | 'ambiguous';
+
 /** What a recognized blueprint turns into. Resolved by the Phase 4 spawn registry. */
 export interface SpawnDescriptor {
   readonly kind: 'weapon' | 'structure';
@@ -61,7 +67,7 @@ export type DrawingOutcome =
   | {
       readonly kind: 'unrecognized';
       readonly bestCandidate?: BlueprintId;
-      readonly reason: 'below-floor' | 'ambiguous';
+      readonly reason: RejectionReason;
     }
   | {
       readonly kind: 'unaffordable';
