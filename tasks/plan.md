@@ -68,7 +68,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   Landed in `drawing/geometry.ts`, `drawing/discriminators.ts` and
   `drawing/constraints.ts`. Decisions recorded as SPEC_AUDIT D-06.
 
-- [ ] **T3 — Blueprints, classifier, validator (shared).**
+- [x] **T3 — Blueprints, classifier, validator (shared).**
   - The sword `BlueprintTemplate` as data, and a registry.
   - Two-tier classification: a hard filter on discriminators, then a soft
     score, then rejection on the floor and the margin.
@@ -82,6 +82,10 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
     scribble, rectangle, parallel lines) return `unrecognized` or `smudged`,
     never a wrong `created`;
   - accuracy bands hold.
+
+  Landed in `drawing/blueprint.ts`, `drawing/blueprints/`, `drawing/classify.ts`,
+  `drawing/validate.ts` and `drawing/fixtures.ts`, with the acceptance suite in
+  `drawing/corpus.test.ts`. Decisions recorded as SPEC_AUDIT D-07.
 
 - [ ] **T4 — Wire format (shared).**
   - `DrawingSubmission`: int16 quantized, delta-encoded points, varint timing,

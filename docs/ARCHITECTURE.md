@@ -553,6 +553,7 @@ interface Sketch {
 interface BlueprintTemplate {
   id: BlueprintId;
   chalkCost: number;
+  reference: Point2[][];            // the ideal shape, in Codex stroke order
   discriminators: Discriminators;   // used by classification, see 6.3
   constraints: Constraint[];        // used by grading, see 6.4
   minAccuracy: number;              // grading pass threshold, 0..1
@@ -653,10 +654,17 @@ and genuinely new shapes add one constraint used by many blueprints.
 ```ts
 interface Constraint {
   readonly kind: string;
-  evaluate(d: NormalizedDrawing): { score: number; passed: boolean; detail?: string };
+  evaluate(d: NormalizedDrawing): { score: number; passed: boolean; code?: FailureCode; detail?: string };
   readonly weight: number;
+  readonly gate?: boolean;          // must pass, but does not score: see below
 }
 ```
+
+**Gates.** `Timing` and `HumanLikeness` answer "is this a drawing at all?", not
+"how good is it?". They are marked `gate` and left out of the accuracy mean,
+because a check that returns a guaranteed 1 for every real player would inflate
+every grade toward the top band and quietly undo §6.5. Taking care over a
+sketch is care, not inaccuracy.
 
 MVP constraint library:
 
@@ -674,8 +682,9 @@ MVP constraint library:
 | `Timing` | total duration within range |
 | `HumanLikeness` | max point velocity and a jitter/entropy floor (anti-automation) |
 
-`accuracy` is the weighted mean of constraint scores. `passed` requires every
-`passed` flag true **and** `accuracy >= minAccuracy`. Keeping both means a
+`accuracy` is the weighted mean of the scoring (non-gate) constraint scores.
+`passed` requires every `passed` flag true, gates included, **and**
+`accuracy >= minAccuracy`. Keeping both means a
 drawing cannot pass by scoring well on average while violating something
 structural, such as a crossguard that never crosses the blade.
 
@@ -706,8 +715,15 @@ grade and the explanation.
 ```ts
 export const SWORD: BlueprintTemplate = {
   id: 'sword',
-  chalkCost: ECONOMY.sword.cost,
+  chalkCost: ECONOMY.blueprintCost.sword,
   minAccuracy: 0.6,
+
+  // The ideal shape, in the stroke order the Codex teaches. Drives the
+  // classifier's template distance and the Codex diagram.
+  reference: [
+    [{ x: 0, y: 0.5 }, { x: 0, y: -0.5 }],
+    [{ x: -0.185, y: -0.25 }, { x: 0.185, y: -0.25 }],
+  ],
 
   // Used by classification (6.3). Asserted mutually distinct by test.
   discriminators: {

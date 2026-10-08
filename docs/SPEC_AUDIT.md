@@ -811,6 +811,27 @@ with no UI and no real items; the sword (Phase 4) is its first user.
 
 ---
 
+### D-07 — Phase 3 classifier and validator decisions (T3) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Gates do not grade | `Timing` and `HumanLikeness` are marked `gate`: they must pass, but they are excluded from the accuracy mean. `Timing` was also changed from a graded band to a flat pass/fail | Found by probing the corpus: with two always-1 checks in an eight-term mean, **every** clean sketch graded `keen` and SPEC §6.5's bands were dead. With gates removed from the mean the corpus now spans crude, sound and keen. Taking care over a sketch is care, not inaccuracy |
+| b | Blueprints carry a `reference` shape | New `BlueprintTemplate.reference` field: the ideal shape, stroke by stroke, in Codex order | One source for three users — the classifier's template distance, the `TemplateDistance` constraint, and the Codex diagram (T9) — so the taught shape and the graded shape cannot drift apart |
+| c | Stroke order is part of the shape | Constraints and the soft score compare stroke *k* to stroke *k*; no permutation matching | SPEC §6.4 already has the Codex teach stroke order, so it is something the player knows. Matching permutations would cost more and recognise shapes the Codex never taught |
+| d | Soft score | `0.6 ×` template agreement `+ 0.15 ×` aspect class `+ 0.25 ×` orientation [PLACEHOLDER] | Template agreement dominates because it is the only one of the three that sees the whole shape; aspect and orientation are cheap tie-breakers that the hard filter does not already cover |
+| e | Affordability is checked last | A badly drawn sword from a player with no chalk is `smudged`, not `unaffordable` | Being told the drawing was bad teaches the shape; being told only "you are broke" hides the real problem. Both cost the same (SPEC §6.6), so nothing is lost |
+| f | A smudge without a named failure | A sketch can pass every constraint and still miss `minAccuracy`, producing `smudged` with an empty `failures` list | Correct per ARCHITECTURE §6.4's two gates, but **T7 must have a fallback message** for it — "it didn't hold together" rather than naming a part |
+| g | An upside-down sword is a smudge, not a refusal | A guard crossing high on the blade clears the hard filter and the floor, then fails the intersection band | It *is* a sword, drawn wrong, and SPEC §15 wants the specific message. Refusing it would teach the player nothing |
+| h | Corpus | Synthetic and seeded, with a hand model whose wobble is low-frequency and whose **timing** is noisy | A real hand drifts, it does not vibrate. Modelling it the other way round produces sketches that fail `Straightness` and pass `HumanLikeness` for exactly the wrong reasons |
+
+**Known gap.** Every fixture is synthetic. The corpus proves the system refuses
+what it cannot read and never misreads, but it cannot prove the floor and the
+margin are set where a *person* would want them. Vertical-slice criterion 4 (a
+human passes 9 of 10) stays open until there is a client to draw on, and the
+human-recorded fixtures land with it in T6–T7.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

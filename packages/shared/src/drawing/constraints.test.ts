@@ -407,12 +407,19 @@ describe('timing', () => {
   const after = (ms: number): NormalizedDrawing => normalizeSketch(sketch([stroke(BLADE)], ms));
 
   it.each([
-    ['comfortably inside', 3125, 1],
+    ['a quick sketch', 400, 1],
+    ['a brisk draw', 1200, 1],
+    ['a careful one', 4500, 1],
     ['too fast', 100, 0],
     ['exactly at the floor', 250, 0],
     ['too slow', 9000, 0],
   ])('%s', (_name, ms, expected) => {
     expect(window.evaluate(after(ms)).score).toBeCloseTo(expected, 6);
+  });
+
+  it('is a gate, not a grade: drawing carefully must not cost accuracy', () => {
+    const scores = [300, 800, 1500, 3000, 5500].map((ms) => window.evaluate(after(ms)).score);
+    expect(scores).toEqual([1, 1, 1, 1, 1]);
   });
 
   it('distinguishes rushing from dawdling', () => {

@@ -15,6 +15,40 @@ export const DRAWING = {
   bandPlateau: 0.5,
 
   /**
+   * The best candidate must clear this to be recognized at all (SPEC §6.2
+   * stage 2). [PLACEHOLDER] — tune by playing, upward.
+   */
+  recognitionFloor: 0.5,
+
+  /**
+   * ...and must beat the runner-up by this much, or the sketch is refused as
+   * ambiguous rather than guessed at. [PLACEHOLDER]
+   */
+  ambiguityMargin: 0.15,
+
+  /**
+   * Weights of the classifier's soft score (ARCHITECTURE §6.3). They sum to 1,
+   * which a test asserts. Template agreement dominates because it is the only
+   * one of the three that sees the whole shape. [PLACEHOLDER]
+   */
+  classify: {
+    templateWeight: 0.6,
+    aspectWeight: 0.15,
+    angleWeight: 0.25,
+    /** Mean per-point distance, in normalized units, at which agreement is 0. */
+    maxTemplateDistance: 0.35,
+  },
+
+  /**
+   * Accuracy bands for a created object (SPEC §6.5): crude below `sound`,
+   * sound up to and including `keen`, keen above it. [PLACEHOLDER]
+   */
+  quality: {
+    sound: 0.75,
+    keen: 0.9,
+  },
+
+  /**
    * Bounding-box aspect (width / height) above this is 'wide' and below its
    * reciprocal is 'tall'; between them is 'square' (SPEC §6.3). [PLACEHOLDER]
    */

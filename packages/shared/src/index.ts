@@ -133,3 +133,20 @@ export {
   type IntersectionOptions,
   type TimingRange,
 } from './drawing/constraints';
+export type {
+  BlueprintId,
+  BlueprintTemplate,
+  DrawingOutcome,
+  Quality,
+  SpawnDescriptor,
+} from './drawing/blueprint';
+export { BLUEPRINTS, blueprintById } from './drawing/blueprints/registry';
+export { SWORD } from './drawing/blueprints/sword';
+export { classify, type CandidateScore, type Classification } from './drawing/classify';
+export {
+  grade,
+  qualityFor,
+  validateSketch,
+  type Grade,
+  type ValidateOptions,
+} from './drawing/validate';

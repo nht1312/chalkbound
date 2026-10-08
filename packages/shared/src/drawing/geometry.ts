@@ -186,3 +186,44 @@ function segmentIntersection(
   if (t < 0 || t > 1 || u < 0 || u > 1) return null;
   return { t, u };
 }
+
+/**
+ * Mean per-point distance between two stroke sets, after both have been
+ * resampled to the same point count — the useful half of `$1`
+ * (ARCHITECTURE §6.5). Each stroke is matched in whichever direction fits
+ * better, so draw direction does not matter, and `Infinity` says the two
+ * cannot be compared at all.
+ *
+ * Shared by the `TemplateDistance` constraint and the classifier's soft score.
+ */
+export function meanTemplateDistance(
+  strokes: readonly (readonly Point2[])[],
+  template: readonly (readonly Point2[])[],
+): number {
+  if (strokes.length === 0 || strokes.length !== template.length) return Infinity;
+  let total = 0;
+  let counted = 0;
+  for (let i = 0; i < template.length; i++) {
+    const drawn = strokes[i];
+    const want = template[i];
+    if (!drawn || !want) return Infinity;
+    total += Math.min(
+      meanPointDistance(drawn, want),
+      meanPointDistance(drawn, [...want].reverse()),
+    );
+    counted++;
+  }
+  return counted === 0 ? Infinity : total / counted;
+}
+
+function meanPointDistance(a: readonly Point2[], b: readonly Point2[]): number {
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return Infinity;
+  let total = 0;
+  for (let i = 0; i < n; i++) {
+    const p = a[i];
+    const q = b[i];
+    if (p && q) total += Math.hypot(q.x - p.x, q.y - p.y);
+  }
+  return total / n;
+}

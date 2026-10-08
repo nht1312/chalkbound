@@ -4,6 +4,7 @@ import {
   closureRatio,
   dominantAngle,
   endpointGap,
+  meanTemplateDistance,
   polylineCrossing,
   straightness as measureStraightness,
 } from './geometry';
@@ -51,6 +52,13 @@ export interface ConstraintResult {
 export interface Constraint {
   readonly kind: string;
   readonly weight: number;
+  /**
+   * A gate answers "is this a drawing at all?", not "how good is it?". It
+   * must pass, but it is left out of the accuracy mean: a check that returns
+   * a guaranteed 1 for every real player would inflate every grade toward the
+   * top band and quietly undo the quality system (SPEC §6.5).
+   */
+  readonly gate?: boolean;
   evaluate(drawing: NormalizedDrawing): ConstraintResult;
 }
 
@@ -315,18 +323,15 @@ export function templateDistance(
       if (d.strokes.length !== template.strokes.length) {
         return fail('missing-stroke', 'The drawing has the wrong number of strokes');
       }
-      let total = 0;
-      let count = 0;
-      for (let i = 0; i < template.strokes.length; i++) {
-        const drawn = d.strokes[i]?.points;
-        const want = template.strokes[i]?.points;
-        if (!drawn || !want) continue;
-        total += Math.min(meanDistance(drawn, want), meanDistance(drawn, [...want].reverse()));
-        count++;
-      }
-      const unmatched = (): string => 'That is not the right shape';
-      if (count === 0) return fail('off-template', unmatched());
-      return graded(ramp(total / count, 0, maxMeanDistance), 'off-template', unmatched);
+      const distance = meanTemplateDistance(
+        d.strokes.map((s) => s.points),
+        template.strokes.map((s) => s.points),
+      );
+      return graded(
+        ramp(distance, 0, maxMeanDistance),
+        'off-template',
+        () => 'That is not the right shape',
+      );
     },
   };
 }
@@ -336,13 +341,19 @@ export interface TimingRange {
   readonly maxMs: number;
 }
 
-/** Total sketch duration inside `[minMs, maxMs]`. */
+/**
+ * Total sketch duration inside `[minMs, maxMs]`, exclusive. A gate scored 1 or
+ * 0, never graded: taking your time over a sketch is care, not inaccuracy, and
+ * the range exists to catch a replayed script and an abandoned drawing — not
+ * to rank a quick hand above a steady one.
+ */
 export function timing({ minMs, maxMs }: TimingRange, weight = 1): Constraint {
   return {
     kind: 'Timing',
     weight,
+    gate: true,
     evaluate: (d) =>
-      graded(bandScore(d.durationMs, minMs, maxMs), 'bad-timing', () =>
+      graded(bandScore(d.durationMs, minMs, maxMs, 1), 'bad-timing', () =>
         d.durationMs <= minMs ? 'That was drawn too fast' : 'That took too long',
       ),
   };
@@ -358,6 +369,7 @@ export function humanLikeness(weight = 1): Constraint {
   return {
     kind: 'HumanLikeness',
     weight,
+    gate: true,
     evaluate: (d) => {
       const samples = sampleSpeeds(d.source);
       if (samples === null) return fail('inhuman', 'Stroke timing does not move forward');
@@ -392,18 +404,6 @@ function sampleSpeeds(sketch: Sketch): number[] | null {
     }
   }
   return out;
-}
-
-function meanDistance(a: readonly Point2[], b: readonly Point2[]): number {
-  const n = Math.min(a.length, b.length);
-  if (n === 0) return Infinity;
-  let total = 0;
-  for (let i = 0; i < n; i++) {
-    const p = a[i];
-    const q = b[i];
-    if (p && q) total += Math.hypot(q.x - p.x, q.y - p.y);
-  }
-  return total / n;
 }
 
 function sketchFrom(reference: readonly (readonly Point2[])[]): Sketch {
