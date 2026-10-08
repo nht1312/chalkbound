@@ -525,6 +525,78 @@ describe('MatchSimulation drawing submissions', () => {
     });
   });
 
+  /**
+   * ROADMAP Phase 4: "a drawn bridge can be crossed without falling through".
+   *
+   * Run on a bare two-slab level rather than the greybox room, so what is
+   * being measured is the bridge and not the furniture. That the real room
+   * has a properly formed trench is asserted in `greyboxRoom.test.ts`.
+   */
+  describe('a bridge across a gap', () => {
+    const GAP = { fromZ: -3, toZ: -1.4 };
+    const EDGE_Z = GAP.toZ + 0.6; // a short walk from the brink
+
+    /** Two floor slabs with a void between them, and a player at the near edge. */
+    function gapSim(chalk: number): MatchSimulation {
+      const floor = (id: string, fromZ: number, toZ: number) => ({
+        id,
+        kind: 'floor' as const,
+        center: vec3(0, -0.5, (fromZ + toZ) / 2),
+        halfExtents: vec3(20, 0.5, (toZ - fromZ) / 2),
+      });
+      const sim = new MatchSimulation(RAPIER, {
+        boxes: [floor('near', GAP.toZ, 20), floor('far', -20, GAP.fromZ)],
+        spawn: vec3(0, 0, EDGE_Z),
+        chalkBoxes: [{ id: 1, position: vec3(0, 0.05, EDGE_Z), amount: chalk }],
+      });
+      sim.addPlayer(1);
+      sim.interact(1, 1);
+      return sim;
+    }
+
+    /** Walks forward one command per tick and reports where they ended up. */
+    function walk(sim: MatchSimulation, ticks: number): { z: number; y: number } {
+      for (let i = 0; i < ticks; i++) {
+        sim.submitInputs(1, [cmd(i + 1, { moveZ: 1, yaw: 0 })]);
+        sim.step();
+      }
+      const at = sim.playerState(1)?.position;
+      if (!at) throw new Error('no player');
+      return { z: at.z, y: at.y };
+    }
+
+    it('drops the player into the void when they walk off the edge', () => {
+      const sim = gapSim(ECONOMY.chalk.max);
+      const { y } = walk(sim, 60);
+      expect(y).toBeLessThan(-1);
+    });
+
+    it('carries them across once a bridge is drawn over it', () => {
+      const sim = gapSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, BRIDGE_SKETCH));
+      const [bridge] = sim.drawnObjects();
+      expect(bridge?.blueprintId).toBe('bridge');
+
+      const { z, y } = walk(sim, 90);
+      // Past the far edge, and never dropped through the deck on the way.
+      expect(z).toBeLessThan(GAP.fromZ);
+      expect(y).toBeGreaterThan(-0.5);
+    });
+
+    it('keeps their feet on the deck for every tick of the crossing', () => {
+      const sim = gapSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, BRIDGE_SKETCH));
+      let lowest = 0;
+      for (let i = 0; i < 90; i++) {
+        sim.submitInputs(1, [cmd(i + 1, { moveZ: 1, yaw: 0 })]);
+        sim.step();
+        lowest = Math.min(lowest, sim.playerState(1)?.position.y ?? 0);
+      }
+      // A single bad tick is a fall through the deck, even if they recover.
+      expect(lowest).toBeGreaterThan(-0.5);
+    });
+  });
+
   it('never takes more chalk than the player holds', () => {
     const sim = drawSim(2);
     const result = resolve(sim.submitDrawing(1, SCRIBBLE_SKETCH));

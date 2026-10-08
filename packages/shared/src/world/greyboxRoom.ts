@@ -46,6 +46,19 @@ const DESK = {
 const BLACKBOARD = { width: 4, height: 1.2, thickness: 0.05, centerY: 1.6 } as const;
 
 /**
+ * A trench across the full width of the room, between the desks and the
+ * blackboard. It exists so a bridge has a job: without somewhere to fall, a
+ * walkable surface cannot be shown to work (ROADMAP Phase 4).
+ *
+ * `[PLACEHOLDER]`. It is sized to be comfortably spanned by the 4 m bridge
+ * and to leave the far strip wide enough to stand on, which matters more than
+ * it sounds — a ledge narrower than the player capsule cannot be landed on at
+ * all. Whether it is also *too narrow to jump* is a level-design question that
+ * belongs to the real school at Phase 6, not to the greybox.
+ */
+export const FLOOR_GAP = { fromZ: -3.2, toZ: -1.6 } as const;
+
+/**
  * Phase 0 grey-box: one classroom-sized room with desk blocks, used to check
  * scale, lighting, camera feel and colliders. Defined once here so rendering
  * and physics can never disagree. Replaced by the Abandoned School in Phase 6.
@@ -57,13 +70,19 @@ export function createGreyboxRoom(): LevelData {
   const halfH = ROOM.height / 2;
   const halfT = ROOM.wallThickness / 2;
 
-  // Floor top surface sits at y = 0.
-  boxes.push({
-    id: 'floor',
-    kind: 'floor',
-    center: vec3(0, -ROOM.floorThickness / 2, 0),
-    halfExtents: vec3(halfW, ROOM.floorThickness / 2, halfD),
-  });
+  // Floor top surface sits at y = 0, in two slabs either side of the trench.
+  const floorY = -ROOM.floorThickness / 2;
+  const halfT_floor = ROOM.floorThickness / 2;
+  const slab = (id: string, fromZ: number, toZ: number): void => {
+    boxes.push({
+      id,
+      kind: 'floor',
+      center: vec3(0, floorY, (fromZ + toZ) / 2),
+      halfExtents: vec3(halfW, halfT_floor, (toZ - fromZ) / 2),
+    });
+  };
+  slab('floor-far', -halfD, FLOOR_GAP.fromZ);
+  slab('floor-near', FLOOR_GAP.toZ, halfD);
 
   // Walls sit just outside the floor footprint so the interior is exactly width × depth.
   boxes.push(
@@ -124,7 +143,8 @@ export function createGreyboxRoom(): LevelData {
       position: vec3(-DESK.spacingX, DESK.height + onFloor, -DESK.spacingZ + DESK.offsetZ),
     },
     { id: 2, position: vec3(-halfW + 0.5, onFloor, halfD - 0.5) },
-    { id: 3, position: vec3(1.5, onFloor, -halfD + 0.3) },
+    // On the far side of the trench: the chalk tray is bridge-gated.
+    { id: 3, position: vec3(1.5, onFloor, -halfD + 0.4) },
   ];
 
   // Spawn in the aisle between the first two desk columns, facing the blackboard (-Z).

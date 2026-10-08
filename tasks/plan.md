@@ -237,7 +237,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   real client does, moved the free walk to 4.1 m and made the assertion mean
   something.
 
-- [ ] **T6 — A gap in the greybox room, and a bridge across it.**
+- [x] **T6 — A gap in the greybox room, and a bridge across it.**
   The room's single floor slab becomes two with a void between them, wide enough
   to fall through and short enough for a 4 m bridge to span. Existing floor
   tests move with it.
@@ -245,8 +245,22 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   is spawned across it, crosses without falling through at 60 Hz for the whole
   crossing — the exit criterion, tested rather than asserted.
 
-  *Depends on:* T5. *Files:* `world/greyboxRoom.ts` + tests,
-  `client/render/createTestScene.ts`. *Scope:* M.
+  *Depends on:* T5. *Files:* `world/greyboxRoom.ts` + tests. *Scope:* M.
+
+  **Landed.** `createTestScene.ts` needed no change after all: it already
+  iterated `level.boxes`, so a floor in two pieces renders as readily as one.
+
+  The far strip is sized against the **player capsule**, not by eye. A ledge
+  narrower than the capsule cannot be landed on at all, which would have made
+  the bridge useless in a way no test of the bridge itself would have caught.
+  Whether the trench is also too wide to *jump* is left to Phase 6: it is a
+  question about the real school, not about the greybox.
+
+  The crossing is tested on a bare two-slab level so that what is measured is
+  the bridge rather than the furniture, with the real room's trench asserted
+  separately. The same walk falls without a bridge and crosses with one, and a
+  third test watches every tick of the crossing — a single bad tick is a fall
+  through the deck even if the player recovers from it.
 
 - [ ] **T7 — Drawn objects on the wire, the ghost, and the solid transition (R-03).**
   Snapshots carry the drawn-object list (decision 2) and the codec encodes it.
