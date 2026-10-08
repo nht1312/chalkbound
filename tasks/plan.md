@@ -141,7 +141,7 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   record as D-16 (the taught bridge rail gap) and D-17 (a non-blueprint may
   smudge). Three further findings, all flagged below.
 
-- [ ] **T2 — The Codex teaches three, and `unaffordable` becomes reachable.**
+- [x] **T2 — The Codex teaches three, and `unaffordable` becomes reachable.**
   Costs now differ (wall 15, sword 20, bridge 25), so a player can recognizably
   draw something they cannot pay for — the outcome written in Phase 3 but
   unreachable until now. The Codex overlay and the failure messages pick up the
@@ -156,6 +156,13 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   *Depends on:* T1. *Files:* `client/ui/codex.ts`, `client/drawing/blueprintNames.ts`,
   `client/ui/drawingBanner.ts` and their tests, `sim/MatchSimulation.test.ts`.
   *Scope:* S.
+
+  **Landed, and it needed no production code at all.** The Codex already read
+  the registry, and the failure messages already read the blueprint's own id
+  and name, so putting two blueprints in the registry was the whole feature.
+  T2 is therefore acceptance coverage rather than construction. Because every
+  new test passed on first run, each was mutation-checked by removing the
+  bridge from the registry: all four fail without it, so none is vacuous.
 
 - [ ] **T3 — The drawn-object model and placement (shared, no wiring).**
   `DrawnObject` — id, blueprint, kind, transform, quality, accuracy, health or

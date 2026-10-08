@@ -1,4 +1,10 @@
-import { BLUEPRINTS, SWORD, type BlueprintTemplate } from '@chalkbound/shared';
+import {
+  BLUEPRINTS,
+  ECONOMY,
+  SWORD,
+  type BlueprintId,
+  type BlueprintTemplate,
+} from '@chalkbound/shared';
 import { describe, expect, it } from 'vitest';
 import { blueprintDiagram, codexEntries, type CodexDiagramOptions } from './codex';
 
@@ -128,6 +134,34 @@ describe('codexEntries', () => {
   it('treats unknown chalk as unaffordable rather than as permission', () => {
     // Before the first snapshot the authority has not spoken.
     expect(codexEntries(undefined, [SWORD], options)[0]?.affordable).toBe(false);
+  });
+
+  it('teaches the whole MVP set, each with its own shape', () => {
+    const entries = codexEntries(100, BLUEPRINTS, options);
+    expect(entries.map((e) => e.id)).toEqual(['sword', 'wall', 'bridge']);
+    for (const entry of entries) {
+      expect(entry.name).not.toBe('');
+      expect(entry.strokes.length).toBeGreaterThan(0);
+    }
+    // Three different shapes, not one shape drawn three times.
+    const shapes = entries.map((e) => JSON.stringify(e.strokes));
+    expect(new Set(shapes).size).toBe(entries.length);
+  });
+
+  /**
+   * The markers earn their place only once the costs differ: with one price
+   * they said the same thing about everything. This is what stands between a
+   * player and an `unaffordable` sketch (SPEC §6.6).
+   */
+  it('tells apart what this chalk can and cannot pay for', () => {
+    const affordable = (chalk: number): BlueprintId[] =>
+      codexEntries(chalk, BLUEPRINTS, options)
+        .filter((e) => e.affordable)
+        .map((e) => e.id);
+    expect(affordable(0)).toEqual([]);
+    expect(affordable(ECONOMY.blueprintCost.wall)).toEqual(['wall']);
+    expect(affordable(ECONOMY.blueprintCost.sword)).toEqual(['sword', 'wall']);
+    expect(affordable(ECONOMY.chalk.max)).toEqual(['sword', 'wall', 'bridge']);
   });
 
   it('carries the diagram, so the overlay draws the shape it teaches', () => {

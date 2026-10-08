@@ -254,6 +254,8 @@ describe('MatchSimulation drawing submissions', () => {
     return found.sketch;
   };
   const SWORD_SKETCH = sketchNamed('sword-clean');
+  const WALL_SKETCH = sketchNamed('wall-clean');
+  const BRIDGE_SKETCH = sketchNamed('bridge-clean');
   const SMUDGE_SKETCH = sketchNamed('sword-shaky-blade');
   const SCRIBBLE_SKETCH = sketchNamed('scribble');
 
@@ -312,6 +314,48 @@ describe('MatchSimulation drawing submissions', () => {
     });
     expect(result.chalkDebited).toBe(ECONOMY.unaffordableCost);
     expect(sim.chalk(1)).toBe(held - ECONOMY.unaffordableCost);
+  });
+
+  /**
+   * Until Phase 4 every blueprint cost the same, so a player who could afford
+   * to draw could afford whatever they drew, and `unaffordable` was reachable
+   * only by contriving the chalk. With three costs it is an ordinary thing to
+   * walk into: the wall is the cheap option and the bridge the dear one, and
+   * what the player can pay for now depends on what the sketch turns out to
+   * be — which is the whole point of pricing after recognition (SPEC §6.6).
+   */
+  describe('one meter, three prices', () => {
+    const between = ECONOMY.blueprintCost.wall + 3; // affords a wall, not a bridge
+
+    it('builds the cheap blueprint from chalk that cannot reach the dear one', () => {
+      const sim = drawSim(between);
+      expect(resolve(sim.submitDrawing(1, WALL_SKETCH)).outcome.kind).toBe('created');
+    });
+
+    it('refuses the dear blueprint from the very same chalk', () => {
+      const sim = drawSim(between);
+      const result = resolve(sim.submitDrawing(1, BRIDGE_SKETCH));
+      expect(result.outcome).toMatchObject({
+        kind: 'unaffordable',
+        blueprintId: 'bridge',
+        required: ECONOMY.blueprintCost.bridge,
+        held: between,
+      });
+      expect(result.chalkDebited).toBe(ECONOMY.unaffordableCost);
+    });
+
+    it('charges each blueprint its own cost when it does build', () => {
+      for (const [sketch, id] of [
+        [SWORD_SKETCH, 'sword'],
+        [WALL_SKETCH, 'wall'],
+        [BRIDGE_SKETCH, 'bridge'],
+      ] as const) {
+        const sim = drawSim(ECONOMY.chalk.max);
+        const result = resolve(sim.submitDrawing(1, sketch));
+        expect(result.outcome).toMatchObject({ kind: 'created', blueprintId: id });
+        expect(result.chalkDebited).toBe(ECONOMY.blueprintCost[id]);
+      }
+    });
   });
 
   it('never takes more chalk than the player holds', () => {

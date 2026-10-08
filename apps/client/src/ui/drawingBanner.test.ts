@@ -1,4 +1,5 @@
 import type { DrawingResult, DrawingResultOutcome, FailureCode } from '@chalkbound/shared';
+import type { BlueprintId } from '@chalkbound/shared';
 import { describe, expect, it } from 'vitest';
 import { describeDrawingResult, failureDetail } from './drawingBanner';
 
@@ -135,6 +136,16 @@ describe('describeDrawingResult: unaffordable', () => {
     expect(message.title).toBe('Not enough chalk');
     expect(message.detail).toContain('20');
     expect(message.detail).toContain('3');
+  });
+
+  it('names whichever blueprint it was, not the one it knew first', () => {
+    const detail = (id: BlueprintId, required: number): string =>
+      describeDrawingResult(result({ kind: 'unaffordable', blueprintId: id, required, held: 18 }, 5))
+        .detail;
+    expect(detail('bridge', 25)).toContain('bridge');
+    expect(detail('bridge', 25)).toContain('25');
+    expect(detail('wall', 15)).toContain('wall');
+    expect(detail('sword', 20)).toContain('sword');
   });
 });
 
