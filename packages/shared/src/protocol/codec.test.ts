@@ -12,7 +12,12 @@ import {
 import { swordSketch } from '../drawing/fixtures';
 import { quantizeSketch } from '../drawing/wire';
 import type { PlayerState } from '../sim/stepPlayer';
-import { Button, type DrawnObjectState, type InputCommand } from './messages';
+import {
+  Button,
+  type DrawnObjectState,
+  type EquippedWeaponState,
+  type InputCommand,
+} from './messages';
 
 const command: InputCommand = {
   seq: 4_000_000_000,
@@ -128,10 +133,12 @@ describe('server messages', () => {
       chalk: 0,
       chalkBoxes: [],
       drawnObjects: [],
+      equipped: undefined,
     } as const;
     const encoded = encodeServerMessage(snapshot);
-    // One more byte than Phase 3: the drawn-object count.
-    expect(encoded.byteLength).toBe(45);
+    // Two more bytes than Phase 3: the drawn-object count, and one zero
+    // standing for empty hands.
+    expect(encoded.byteLength).toBe(46);
 
     const decoded = decodeServerMessage(encoded);
     if (decoded.type !== 'snapshot') throw new Error('wrong type');
@@ -162,9 +169,10 @@ describe('server messages', () => {
         { id: 65535, remaining: 255 },
       ],
       drawnObjects: [],
+      equipped: undefined,
     } as const;
     const encoded = encodeServerMessage(snapshot);
-    expect(encoded.byteLength).toBe(45 + 3 * 3);
+    expect(encoded.byteLength).toBe(46 + 3 * 3);
     const decoded = decodeServerMessage(encoded);
     expect(decoded).toMatchObject({ chalk: 75, chalkBoxes: snapshot.chalkBoxes });
   });
@@ -176,6 +184,7 @@ describe('server messages', () => {
       lastProcessedSeq: 1,
       player,
       drawnObjects: [],
+      equipped: undefined,
     } as const;
     for (const bad of [
       { chalk: 256, chalkBoxes: [] },
@@ -201,6 +210,7 @@ describe('server messages', () => {
       chalk: 0,
       chalkBoxes: [{ id: 1, remaining: 25 }],
       drawnObjects: [],
+      equipped: undefined,
     });
     expect(() => decodeServerMessage(encoded.slice(0, -1))).toThrow(ProtocolError);
     const inflated = encoded.slice();
@@ -224,6 +234,7 @@ describe('server messages', () => {
         chalk: 0,
         chalkBoxes: [],
         drawnObjects: [],
+        equipped: undefined,
       } as const;
       const decoded = decodeServerMessage(encodeServerMessage(snapshot));
       expect(decoded).toMatchObject({ player: flags });
@@ -301,6 +312,7 @@ describe('drawn objects on the wire', () => {
         chalk: 40,
         chalkBoxes: [],
         drawnObjects: objects,
+        equipped: undefined,
       }),
     );
     if (decoded.type !== 'snapshot') throw new Error('expected a snapshot');
@@ -358,7 +370,67 @@ describe('drawn objects on the wire', () => {
         chalk: 0,
         chalkBoxes: [],
         drawnObjects: tooMany,
+        equipped: undefined,
       }),
     ).toThrow();
+  });
+});
+
+
+/** What the player is holding rides with their own snapshot (SPEC §6.8). */
+describe('the equipped weapon on the wire', () => {
+  const PLAYER: PlayerState = {
+    position: { x: 0, y: 0, z: 0 },
+    velocity: { x: 0, y: 0, z: 0 },
+    grounded: true,
+    crouching: false,
+    jumpHeld: false,
+    sprinting: false,
+    stamina: { value: 100, regenDelay: 0 },
+  };
+
+  const roundTrip = (equipped: EquippedWeaponState | undefined) => {
+    const decoded = decodeServerMessage(
+      encodeServerMessage({
+        type: 'snapshot',
+        serverTick: 1,
+        lastProcessedSeq: 1,
+        player: PLAYER,
+        chalk: 0,
+        chalkBoxes: [],
+        drawnObjects: [],
+        equipped,
+      }),
+    );
+    if (decoded.type !== 'snapshot') throw new Error('expected a snapshot');
+    return decoded.equipped;
+  };
+
+  it('carries empty hands in a single byte', () => {
+    expect(roundTrip(undefined)).toBeUndefined();
+  });
+
+  it('round-trips a held sword with its grade and wear', () => {
+    const sword = {
+      blueprintId: 'sword',
+      quality: 'keen',
+      durability: 17,
+      maxDurability: 26,
+    } as const;
+    expect(roundTrip(sword)).toEqual(sword);
+  });
+
+  it('round-trips every quality band', () => {
+    for (const quality of ['crude', 'sound', 'keen'] as const) {
+      expect(
+        roundTrip({ blueprintId: 'sword', quality, durability: 1, maxDurability: 1 })?.quality,
+      ).toBe(quality);
+    }
+  });
+
+  it('carries a sword worn down to its last hit', () => {
+    expect(
+      roundTrip({ blueprintId: 'sword', quality: 'crude', durability: 0, maxDurability: 14 }),
+    ).toMatchObject({ durability: 0 });
   });
 });

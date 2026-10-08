@@ -360,6 +360,7 @@ describe('stepPlayer: reproducibility', () => {
         chalk: 0,
         chalkBoxes: [],
         drawnObjects: [],
+        equipped: undefined,
       }),
     );
     expect(decoded.type === 'snapshot' && decoded.player).toEqual(s);

@@ -317,15 +317,28 @@ These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
   against the previous collision world — which is the bug R-03 describes,
   reintroduced by ordering.
 
-- [ ] **T8 — The sword reaches the hands, graded.**
+- [x] **T8 — The sword reaches the hands, graded.**
   The equipped sword is visible in the viewmodel and carries its quality:
   durability multiplied per decision 6, and a material that reads crude, sound
   or keen. No swinging — that is Phase 5.
   *Accept:* the quality→durability table; the viewmodel shows a sword only while
   one is equipped; a replaced sword's durability does not carry over.
 
-  *Depends on:* T4. *Files:* `client/hands/handRig.ts`,
-  `client/hands/createViewmodel.ts`, `drawing/drawnObject.ts` + tests. *Scope:* S.
+  *Depends on:* T4. *Files:* `client/hands/heldWeapon.ts`, `client/main.ts`,
+  `protocol/{messages,codec}.ts`, `sim/{MatchSimulation,SimulationHost}.ts`
+  + tests. *Scope:* S, and it grew: the snapshot had no way to say what the
+  player was holding, so `EquippedWeaponState` had to be added to carry it.
+
+  **Landed.** Only the receiving player's own weapon is sent — what anyone
+  else is carrying is Phase 8's problem, and sending it early would be sending
+  information the player cannot yet see. Empty hands cost one zero byte, which
+  is the common case.
+
+  Quality is visible per SPEC §6.5, and only the keen blade glows, since the
+  spec singles that out. Dimensions do not vary with quality: a reach that
+  changed with handwriting would be a competitive variable the player cannot
+  see. The blade is rebuilt only when the weapon or its grade changes, rather
+  than thirty times a second for a sword that has not moved.
 
 - [ ] **T9 — Drawn-object health and destruction (RD-07).**
   `damageObject()` on the authority: structures take damage, reach zero, and are

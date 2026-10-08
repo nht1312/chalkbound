@@ -50,6 +50,7 @@ export class SimulationHost {
         chalk: this.sim.chalk(id) ?? 0,
         chalkBoxes: this.sim.chalkBoxStates(),
         drawnObjects: this.sim.drawnObjectStates(),
+        equipped: this.sim.equippedState(id),
       });
     }
   }

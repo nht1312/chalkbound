@@ -450,6 +450,20 @@ describe('MatchSimulation drawing submissions', () => {
       expect(sim.drawnObjects()).toEqual([]);
     });
 
+    it('gives the replacement sword its full durability, not the old one’s wear', () => {
+      const sim = drawSim(ECONOMY.chalk.max);
+      resolve(sim.submitDrawing(1, SWORD_SKETCH));
+      const worn = sim.equipped(1);
+      if (!worn) throw new Error('expected a sword');
+      worn.durability = 3; // as combat will leave it, come Phase 5
+
+      for (let i = 0; i < RATE_LIMIT_TICKS; i++) sim.step();
+      resolve(sim.submitDrawing(1, SWORD_SKETCH));
+      const fresh = sim.equipped(1);
+      expect(fresh?.durability).toBe(fresh?.maxDurability);
+      expect(fresh?.durability).toBeGreaterThan(3);
+    });
+
     it('builds a structure ahead of the player, facing them', () => {
       const sim = drawSim(ECONOMY.chalk.max);
       const spawn = sim.playerState(1)?.position;

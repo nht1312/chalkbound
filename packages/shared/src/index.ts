@@ -26,6 +26,7 @@ export {
   type InputCommand,
   type ChalkBoxState,
   type DrawnObjectState,
+  type EquippedWeaponState,
   type ClientMessage,
   type ServerMessage,
 } from './protocol/messages';

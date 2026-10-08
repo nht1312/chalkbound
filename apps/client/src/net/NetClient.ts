@@ -7,6 +7,7 @@ import {
   type BlueprintId,
   type DrawingResult,
   type DrawnObjectState,
+  type EquippedWeaponState,
   type InputCommand,
   type PlayerState,
   type Scheduler,
@@ -44,6 +45,8 @@ export class NetClient {
    * snapshot is corrected by the next one instead of drifting.
    */
   drawnObjects: readonly DrawnObjectState[] = [];
+  /** What the player is holding, as the authority has it. */
+  equipped: EquippedWeaponState | undefined;
   /** The newest verdict on a submitted sketch; undefined until one arrives. */
   drawingResult: DrawingResult | undefined;
   /**
@@ -156,6 +159,7 @@ export class NetClient {
         this.chalk = message.chalk;
         this.chalkBoxes = new Map(message.chalkBoxes.map((b) => [b.id, b.remaining]));
         this.drawnObjects = message.drawnObjects;
+        this.equipped = message.equipped;
         this.snapshotCount++;
         this.unacked = this.unacked.filter((c) => c.seq > this.lastAckedSeq);
         break;

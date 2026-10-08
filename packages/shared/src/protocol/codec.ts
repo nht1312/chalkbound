@@ -16,6 +16,7 @@ import type {
   ChalkBoxState,
   ClientMessage,
   DrawnObjectState,
+  EquippedWeaponState,
   InputCommand,
   ServerMessage,
 } from './messages';
@@ -36,7 +37,9 @@ const INPUT_COMMAND_BYTES = 16;
 /** f32×3 position, f32×3 velocity, u8 flags, f32 stamina, f32 regen delay. */
 const PLAYER_STATE_BYTES = 33;
 /** u8 tag, u32 serverTick, u32 lastProcessedSeq, player state, u8 chalk, u8 box count. */
-const SNAPSHOT_FIXED_BYTES = 9 + PLAYER_STATE_BYTES + 2;
+/** blueprint, quality, durability, max — or one zero byte for empty hands. */
+const EQUIPPED_BYTES = 6;
+const SNAPSHOT_FIXED_BYTES = 9 + PLAYER_STATE_BYTES + 2 + EQUIPPED_BYTES;
 /** u16 id, u8 remaining. */
 const CHALK_BOX_BYTES = 3;
 /** id, blueprint, quality, x, y, z, yaw, solidFromTick, health. */
@@ -182,6 +185,7 @@ export function encodeServerMessage(message: ServerMessage): Uint8Array {
       }
       writer.u8(drawn.length);
       for (const object of drawn) writeDrawnObject(writer, object);
+      writeEquipped(writer, message.equipped);
       return writer.bytes;
     }
     case 'drawingResult': {
@@ -215,6 +219,7 @@ export function decodeServerMessage(data: Uint8Array): ServerMessage {
         chalk: reader.u8(),
         chalkBoxes: readChalkBoxes(reader),
         drawnObjects: readDrawnObjects(reader),
+        equipped: readEquipped(reader),
       } as const;
       reader.end();
       return message;
@@ -267,6 +272,32 @@ function readDrawnObjects(reader: Reader): DrawnObjectState[] {
     });
   }
   return objects;
+}
+
+/** A blueprint code of 0 means empty hands, which is the common case. */
+function writeEquipped(writer: Writer, equipped: EquippedWeaponState | undefined): void {
+  if (!equipped) {
+    writer.u8(0);
+    return;
+  }
+  writer
+    .u8(blueprintWireId(equipped.blueprintId))
+    .u8(qualityWireId(equipped.quality))
+    .u16(checkedInt(equipped.durability, U16_MAX, 'durability'))
+    .u16(checkedInt(equipped.maxDurability, U16_MAX, 'max durability'));
+}
+
+function readEquipped(reader: Reader): EquippedWeaponState | undefined {
+  const code = reader.u8();
+  if (code === 0) return undefined;
+  const blueprintId = blueprintFromWireId(code);
+  if (!blueprintId) throw new ProtocolError('Unknown blueprint in an equipped weapon');
+  return {
+    blueprintId,
+    quality: qualityFromWireId(reader.u8()),
+    durability: reader.u16(),
+    maxDurability: reader.u16(),
+  };
 }
 
 function readChalkBoxes(reader: Reader): ChalkBoxState[] {

@@ -21,6 +21,7 @@ import {
 } from '@chalkbound/shared';
 import { CLIENT_CONFIG } from './config/client';
 import { DrawnObjects } from './drawing/DrawnObjects';
+import { createHeldWeapon } from './hands/heldWeapon';
 import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraFeel';
 import { FppCamera } from './camera/FppCamera';
 import { createViewmodel } from './hands/createViewmodel';
@@ -67,6 +68,9 @@ function bootstrap(): void {
   const camera = new PerspectiveCamera(feelCfg.baseFov, 1, camCfg.near, camCfg.far);
   let feel = initialCameraFeel(feelCfg);
   const viewmodel = createViewmodel(CLIENT_CONFIG.hands.lens, CLIENT_CONFIG.hands.arm);
+  // The sketch becoming a weapon in your hands is the signature moment
+  // (SPEC §6.8), so the right hand follows the authority's equipped state.
+  const heldWeapon = createHeldWeapon(viewmodel.rightHand);
   let handRig = initialHandRig();
   const { renderer } = createRenderer(canvas, [camera, viewmodel.camera], CLIENT_CONFIG.render);
   const scene = createTestScene(level);
@@ -290,6 +294,7 @@ function bootstrap(): void {
     };
     feel = updateCameraFeel(feel, movement, frameDelta, feelCfg);
     handRig = updateHandRig(handRig, movement, frameDelta, CLIENT_CONFIG.hands.rig);
+    heldWeapon.update(net.equipped);
     viewmodel.apply(handTransforms(handRig, feel.bobPhase, CLIENT_CONFIG.hands.rig));
     const bob = bobOffset(feel, feelCfg);
     // Sway along the camera's right axis (yaw only).

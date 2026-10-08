@@ -13,7 +13,11 @@ import { validateSketch } from '../drawing/validate';
 import { quantizeSketch } from '../drawing/wire';
 import { addDrawnCollider, removeDrawnCollider } from '../physics/drawnColliders';
 import { createStaticWorld, type PhysicsWorld, type Rapier } from '../physics/staticWorld';
-import type { DrawnObjectState, InputCommand } from '../protocol/messages';
+import type {
+  DrawnObjectState,
+  EquippedWeaponState,
+  InputCommand,
+} from '../protocol/messages';
 import type { ChalkBoxSpawn, LevelData } from '../world/greyboxRoom';
 import { addChalk } from './chalk';
 import { withinInteractRange } from './interaction';
@@ -206,6 +210,18 @@ export class MatchSimulation {
   /** What `id` is holding, if anything. */
   equipped(id: PlayerId): DrawnWeapon | undefined {
     return this.players.get(id)?.equipped;
+  }
+
+  /** The same weapon as the wire carries it. */
+  equippedState(id: PlayerId): EquippedWeaponState | undefined {
+    const weapon = this.players.get(id)?.equipped;
+    if (!weapon) return undefined;
+    return {
+      blueprintId: weapon.blueprintId,
+      quality: weapon.quality,
+      durability: weapon.durability,
+      maxDurability: weapon.maxDurability,
+    };
   }
 
   chalkBoxStates(): { readonly id: number; readonly remaining: number }[] {

@@ -83,6 +83,8 @@ export type ServerMessage =
       readonly chalkBoxes: readonly ChalkBoxState[];
       /** Every structure standing in the world (plan decision 2). */
       readonly drawnObjects: readonly DrawnObjectState[];
+      /** What the receiving player is holding, if anything. */
+      readonly equipped: EquippedWeaponState | undefined;
     }
   /** The authoritative verdict on one submitted sketch, sent reliably. */
   | { readonly type: 'drawingResult'; readonly result: DrawingResult };
@@ -90,6 +92,18 @@ export type ServerMessage =
 export interface ChalkBoxState {
   readonly id: number;
   readonly remaining: number;
+}
+
+/**
+ * The weapon in the receiving player's hands (SPEC §6.8). Only ever their
+ * own: what anyone else is carrying is Phase 8's problem, and sending it
+ * early would be sending information the player cannot yet see.
+ */
+export interface EquippedWeaponState {
+  readonly blueprintId: BlueprintId;
+  readonly quality: Quality;
+  readonly durability: number;
+  readonly maxDurability: number;
 }
 
 /**
