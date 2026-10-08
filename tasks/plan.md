@@ -1,221 +1,284 @@
-# Phase 3 — Drawing: task plan
+# Phase 4 — Creation: task plan
 
-Source: `docs/ROADMAP.md` Phase 3; `SPEC.md` §6 (drawing and blueprints), §7.1
-(sword), §14 (audio/VFX), §15 (UI); `docs/ARCHITECTURE.md` §4.5, §5.3 and §6;
-`docs/SPEC_AUDIT.md` RD-01, RD-08, R-01, R-07, R-11, D-02. Approved by the user
-2026-10-07 ("approve Phase 3"). The Phase 2 plan is in git history.
+Source: `docs/ROADMAP.md` Phase 4; `SPEC.md` §6.3 (distinctness), §6.5 (quality),
+§6.6 (cost), §6.8 (where the object appears), §7.1–7.4 (the MVP blueprint set);
+`docs/ARCHITECTURE.md` §5.3, §5.5 and §6.6; `docs/SPEC_AUDIT.md` R-03, R-11,
+RD-07. The Phase 3 plan is in git history (through commit `21380dd`).
 
 Each task ends green (`pnpm typecheck && pnpm lint && pnpm test && pnpm build`)
-and is committed separately. This is the highest-risk phase; the ROADMAP
-budgets 2–3 feel iterations on cursor, plane and hand timing after T10.
+and is committed separately.
 
-**Scope boundary.** Only the **sword** blueprint exists in Phase 3. Wall and
-bridge are Phase 4 data. A recognized sketch debits chalk and plays creation
-VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
-(Creation).
+**Scope boundary.** Phase 4 makes a recognized sketch *become a thing*. It does
+not make that thing useful in a fight: swinging the sword, dealing damage, and
+consuming durability are **Phase 5**. Phase 4 builds the durability and health
+*model* and tests the arithmetic directly, through a `damageObject()` entry
+point with no combat attached. The Erased (Phase 7) and other players (Phase 8)
+are out of scope — drawn objects are world objects, but there is still only one
+player to contest them.
 
-**Invariants:**
+**Invariants carried from Phase 3 (unchanged):**
 - Recognition is purely geometric; it is never ML or image recognition.
-- The client sends strokes. Any `blueprintId` it attaches is a diagnostic hint
-  only.
+- The client sends strokes. Any `blueprintId` it attaches is a diagnostic hint.
 - The authority classifies, then grades, then debits. There is never a refund
-  path.
-- When classification is uncertain, the result is `unrecognized`, never a
-  guess.
+  path — which is why placement cannot fail *after* a debit (decision 1 below).
+- When classification is uncertain, the result is `unrecognized`, never a guess.
 
-**Decisions not in the spec, chosen here and flagged ([PLACEHOLDER]):**
-1. **Stroke input.** Hold RMB to raise the chalk (draw mode). While RMB is held,
-   LMB down/up starts and ends a stroke. Releasing RMB submits the sketch. Esc
-   or losing pointer lock cancels with no cost.
-2. **No chalk, no drawing.** Draw mode needs chalk > 0. The authority ignores a
-   submission from a player holding 0.
-3. **Failure costs are capped.** A smudge, unrecognized or unaffordable debit
-   takes `min(cost, held)`, so chalk never goes negative.
-4. **Fixture corpus.** A seeded synthetic corpus with jitter, human timing and
-   sloppy, ambiguous and non-sword shapes, plus a dev-only hook that saves real
-   sketches as fixture JSON. Human-recorded fixtures are added by playing.
-5. **Limits.** At most 8 strokes and 256 points per stroke on the wire, and at
-   most one submission per 500 ms per player.
-6. **Starting thresholds** (tune by playing, always toward more rejections):
-   - `RECOGNITION_FLOOR` 0.5;
-   - `AMBIGUITY_MARGIN` 0.15;
-   - sword `minAccuracy` 0.6;
-   - quality bands per SPEC §6.5: crude below 0.75, sound up to 0.90, keen
-     above.
-7. **Line direction.** Direction is undirected: a blade drawn top-down or
-   bottom-up is the same line.
-8. **Chalk plane.** 1.2 m ahead (SPEC §6.7). The drawable area is 0.8 × 0.8 m
-   and the cursor is clamped to it. Cursor sensitivity is a separate setting.
+**New invariants, introduced here:**
+- A drawn object is collidable on **both** sides only from its `solidFromTick`.
+  Before confirmation the client shows a non-colliding ghost (R-03).
+- Structures belong to the world, not the drawer (RD-07). Nothing in Phase 4
+  may key a structure's behaviour off its owner.
+- Accuracy never changes *what* is created, only how good it is (SPEC §6.5).
+
+---
+
+## Decisions not in the spec, chosen here and flagged ([PLACEHOLDER])
+
+These are the Phase 4 judgement calls. They would be recorded as SPEC_AUDIT
+**D-15 … D-20** as the tasks land, continuing Phase 3's D-06…D-14.
+
+1. **Placement never fails.** A structure materializes at a transform resolved
+   from the player's position and facing (SPEC §6.8). If that transform overlaps
+   existing geometry, it is **placed anyway**. The alternative — refusing
+   placement — would create a "paid and got nothing" case that the locked
+   four-outcome model has no room for and the no-refund rule forbids. The only
+   adjustment made is a push-out so a structure never spawns inside the drawer's
+   own capsule, which would trap them. Overlapping greybox boxes are ugly and
+   harmless; revisit when the real school exists at Phase 6.
+
+2. **Snapshots carry the full drawn-object list**, exactly as they already carry
+   every chalk box. This is resync-safe and costs no new reliability machinery,
+   at the price of bandwidth that grows with the number of objects. Chalk bounds
+   that number in practice. Revisit at Phase 8, where a reliable `objectSpawned`
+   delta becomes worth its complexity.
+
+3. **`solidFromTick` is stamped and sent, and the replay rule is an assertion
+   rather than a mechanism.** Because a snapshot describes the world at
+   `serverTick`, and replay always restarts from that snapshot, every object a
+   client knows about is *already* solid for every tick it replays. The
+   tick-indexed collider set ARCHITECTURE §5.5 describes is therefore
+   unnecessary under this snapshot design — the property it guarantees already
+   holds. T7 stamps the tick, sends it, and **asserts the invariant in a test**
+   instead of building the mechanism. If the invariant ever fails, the mechanism
+   is the fix. This is the one place this plan knowingly implements less than
+   ARCHITECTURE describes, and it is flagged for that reason.
+
+4. **The sword equips to a dedicated `equipped` slot**, not into the inventory.
+   SPEC §6.8 is explicit that inserting an inventory step between the drawing
+   and the holding wastes the signature moment. `sim/inventory.ts` stays as it
+   is, unused by the simulation until loot arrives at Phase 9.
+
+5. **Drawing a second sword replaces the first.** One pair of hands, one sword.
+   The replaced sword is destroyed, not dropped — dropping needs a world-item
+   representation that nothing else in the MVP needs yet.
+
+6. **Quality scales durability and health, not size.** `scaleFromAccuracy` on
+   the sword's `SpawnDescriptor` is honoured as a *stat* multiplier, not a mesh
+   scale: a keen sword lasts longer and hits slightly harder (SPEC §6.5), but a
+   2.2 m reach that varies with handwriting would be a hidden competitive
+   variable. Visible quality is carried by material, not dimensions.
+
+7. **Starting values** (all [PLACEHOLDER], tune by playing):
+   - wall 60 HP, 2 m × 2.5 m; bridge 40 HP, 4 m span × 1.5 m wide (SPEC §7.2–7.3);
+   - sword 20 hits base durability; crude ×0.7, sound ×1.0, keen ×1.3;
+   - structures spawn 2.5 m ahead of the drawer, floor-aligned.
+
+---
+
+## Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| **R-11** — three blueprints are now confusable with each other; this is the first real test of inference | Critical | T1 is first, deliberately. If the confusion matrix cannot reach zero misreads, the blueprint *shapes* change, not the thresholds. Fail fast, before anything is built on top. |
+| **R-03** — predicted movement against player-made geometry | High | T7, with an explicit invariant test and a probe under injected latency. Decision 3 above narrows what has to be built. |
+| Adding a blueprint quietly requires validator changes | High | T1's acceptance includes a diff check over `classify.ts`, `validate.ts`, `constraints.ts` and `normalize.ts`. The prompt §7 requirement is "verified by actually doing it twice" — wall and bridge *are* the two. |
+| The greybox room has no gap, so a bridge cannot be shown to work | Medium | T6 adds one, and accepts the churn in existing floor tests. |
+
+---
 
 ## Tasks
 
-- [x] **T1 — Drawing types and normalization (shared).**
-  `PlanePoint`, `Stroke`, `Sketch`, and `shared/config/drawing.ts`.
-  `normalize.ts` resamples each stroke to 32 points by arc length, then
-  centres and uniformly scales the whole-drawing bounding box so the longer
-  axis spans 1, preserving aspect.
-  *Accept:* property tests showing the result is translation- and
-  scale-invariant and rotation-*sensitive*; points are evenly spaced, the
-  count is exact, and degenerate input is handled.
-
-- [x] **T2 — Discriminators and the constraint library (shared).**
-  Discriminators: stroke count, intersection, closure, aspect, dominant angles.
-  Constraints: `StrokeCount`, `Straightness`, `Direction`, `RelativeLength`,
-  `Intersection` (with a position band), `EndpointProximity`, `Closure`,
-  `AspectRatio`, `TemplateDistance`, `Timing`, `HumanLikeness`. Each returns a
-  score, a pass flag, and a stable failure code.
-  *Accept:* a table-driven test per constraint.
-  Landed in `drawing/geometry.ts`, `drawing/discriminators.ts` and
-  `drawing/constraints.ts`. Decisions recorded as SPEC_AUDIT D-06.
-
-- [x] **T3 — Blueprints, classifier, validator (shared).**
-  - The sword `BlueprintTemplate` as data, and a registry.
-  - Two-tier classification: a hard filter on discriminators, then a soft
-    score, then rejection on the floor and the margin.
-  - Grading, the quality bands, and the four-case `DrawingOutcome`.
-  - The distinctness test over the registry.
-  - The synthetic fixture corpus.
-
+- [ ] **T1 — Wall and bridge blueprints, and the full confusion matrix (shared).**
+  The riskiest task, placed first. Wall and bridge as pure data files beside
+  `sword.ts`; `BlueprintId` widens to three; the registry lists them. Fixture
+  corpus gains sloppy, ambiguous and negative cases for both, plus the
+  near-misses the new set creates — a sword whose guard misses the blade (now
+  closer to a bridge), a wall drawn with a visible gap (now closer to nothing),
+  two lines that are nearly but not quite parallel.
   *Accept:*
-  - the confusion matrix has zero misclassifications;
-  - deliberately sloppy, ambiguous and non-sword fixtures (line, circle,
-    scribble, rectangle, parallel lines) return `unrecognized` or `smudged`,
-    never a wrong `created`;
-  - accuracy bands hold.
+  - the distinctness test passes over all three pairs, each pair differing on
+    **at least two** discriminators per SPEC §6.3;
+  - the confusion matrix over the whole corpus has **zero** misclassifications,
+    and the rejection rate is reported as a number in the test output;
+  - **no file in `drawing/` outside `blueprints/`, `fixtures.ts` and
+    `blueprint.ts`'s `BlueprintId` changed** — asserted by reading the commit's
+    own diff, which is the prompt §7 requirement made checkable.
 
-  Landed in `drawing/blueprint.ts`, `drawing/blueprints/`, `drawing/classify.ts`,
-  `drawing/validate.ts` and `drawing/fixtures.ts`, with the acceptance suite in
-  `drawing/corpus.test.ts`. Decisions recorded as SPEC_AUDIT D-07.
+  *Depends on:* none. *Files:* `drawing/blueprints/{wall,bridge,registry}.ts`,
+  `drawing/blueprint.ts`, `drawing/fixtures.ts`, `drawing/corpus.test.ts`,
+  `drawing/blueprints/registry.test.ts`. *Scope:* M.
 
-- [x] **T4 — Wire format (shared).**
-  - `DrawingSubmission`: int16 quantized, delta-encoded points, varint timing,
-    and an advisory hint.
-  - `quantizeSketch()`, so the client validates exactly what the server will
-    decode.
-  - `DrawingResult` downstream: outcome, blueprint, accuracy, quality, failure
-    codes, and chalk debited.
-
+- [ ] **T2 — The Codex teaches three, and `unaffordable` becomes reachable.**
+  Costs now differ (wall 15, sword 20, bridge 25), so a player can recognizably
+  draw something they cannot pay for — the outcome written in Phase 3 but
+  unreachable until now. The Codex overlay and the failure messages pick up the
+  two new blueprints from the registry without new per-blueprint code.
   *Accept:*
-  - round-trips;
-  - a sword encodes to ~100–150 bytes;
-  - malformed input and limits are rejected;
-  - the validator gives the same outcome on the client sketch and the decoded
-    bytes for every fixture.
+  - a player holding 18 chalk who draws a bridge gets `unaffordable`, is charged
+    the flat 5, and is told how much is needed;
+  - the Codex lists three entries, each with its own diagram, cost and
+    affordability marker, generated from the blueprint's own `reference`;
+  - `blueprintNames.ts` names all three.
 
-  Landed in `protocol/bytes.ts` (byte I/O extracted from `codec.ts` and given
-  varints and a growable writer), `drawing/wire.ts`, `drawing/result.ts`, and
-  the `drawing` / `drawingResult` messages in `protocol/`. A 44-sample sword
-  is 140 bytes of sketch, 142 on the wire. Decisions recorded as
-  SPEC_AUDIT D-08.
+  *Depends on:* T1. *Files:* `client/ui/codex.ts`, `client/drawing/blueprintNames.ts`,
+  `client/ui/drawingBanner.ts` and their tests, `sim/MatchSimulation.test.ts`.
+  *Scope:* S.
 
-- [x] **T5 — Authority: drawing submissions.**
-  `MatchSimulation.submitDrawing()` validates against the player's chalk and
-  debits per outcome (SPEC §6.6, capped). It rate-limits, ignores players with 0
-  chalk, and counts and logs hint disagreements. The host routes
-  `DrawingSubmission` and replies with a reliable `DrawingResult`.
+- [ ] **T3 — The drawn-object model and placement (shared, no wiring).**
+  `DrawnObject` — id, blueprint, kind, transform, quality, accuracy, health or
+  durability, `solidFromTick`, and the drawer's id for attribution only.
+  `SpawnRegistry` resolves a `SpawnDescriptor` plus an outcome into one, and is
+  the single place a new blueprint registers construction. `placement.ts`
+  resolves a structure's transform from player position and yaw, floor-aligned,
+  with the push-out of decision 1.
+  *Accept:* table-driven tests for the quality→stat multipliers; placement is
+  correct for the four cardinal facings and never overlaps the drawer's capsule;
+  registering an unknown descriptor kind is a typed error, not a silent default.
+
+  *Depends on:* T1. *Files:* `drawing/drawnObject.ts`, `drawing/spawn.ts`,
+  `drawing/placement.ts` + tests. *Scope:* M.
+
+- [ ] **T4 — The authority spawns on `created`.**
+  `MatchSimulation` gains the drawn-object store. A `created` outcome now debits
+  **and** spawns: structures into the world, a weapon into the player's
+  `equipped` slot (decision 4), each stamped with the current tick. Weapons
+  leave with their owner; structures survive `removePlayer` (RD-07).
   *Accept:*
-  - each outcome debits the right amount;
-  - the hint never changes the outcome;
-  - rate-limited and empty-handed submissions are rejected;
-  - a loopback test of the full round trip.
+  - each outcome still debits exactly what Phase 3's tests assert — spawning
+    changes no cost;
+  - a structure outlives the player who drew it; a weapon does not;
+  - a second sword replaces the first (decision 5);
+  - `solidFromTick` equals the tick of the submission that created it.
 
-  Landed in `sim/MatchSimulation.ts` (`submitDrawing`, the `lastDrawingTick`
-  rate limit, and the hint-disagreement counters), `sim/SimulationHost.ts`
-  (routing, and a reliability parameter on `send`), and `chalkCostOf` /
-  `chalkDebitFor` in `drawing/result.ts`. Disagreements are **counted, not
-  logged**: `shared` has no logger, so surfacing them is the host app's job.
-  Decisions recorded as SPEC_AUDIT D-09.
+  *Depends on:* T3. *Files:* `sim/MatchSimulation.ts` + test. *Scope:* M.
 
-- [x] **T6 — Client draw mode.**
-  - Holding RMB enters draw mode only with chalk > 0.
-  - Camera rotation freezes, and raw deltas drive a virtual cursor (pointer
-    lock is kept).
-  - Movement, sprint, jump and attack are suppressed through a shared
-    `stepPlayer` rule (`Draw` held), so prediction and authority agree.
-  - The chalk plane fades in at 1.2 m over 150 ms, and the right hand raises.
-  - `StrokeRecorder`: fixed-rate sampling, a minimum-distance filter, and
-    per-point timing.
-  - The stroke trail renders on the plane.
-  - Cursor sensitivity is added to the pause menu.
+- [ ] **T5 — Structures bear collision.**
+  A `Drawn` collision group, and colliders created and removed on the Rapier
+  world alongside the static ones. Wall blocks movement; bridge is a walkable
+  surface.
+  *Accept:* a player walking into a spawned wall is stopped by it and is not
+  stopped where it is absent; the collider is gone from the world after the
+  object is removed; player movement queries see drawn geometry exactly as they
+  see static geometry.
 
+  *Depends on:* T4. *Files:* `physics/collisionGroups.ts`,
+  `physics/drawnColliders.ts`, `sim/MatchSimulation.ts` + tests. *Scope:* M.
+
+- [ ] **T6 — A gap in the greybox room, and a bridge across it.**
+  The room's single floor slab becomes two with a void between them, wide enough
+  to fall through and short enough for a 4 m bridge to span. Existing floor
+  tests move with it.
+  *Accept:* a player walking into the gap falls; the same player, after a bridge
+  is spawned across it, crosses without falling through at 60 Hz for the whole
+  crossing — the exit criterion, tested rather than asserted.
+
+  *Depends on:* T5. *Files:* `world/greyboxRoom.ts` + tests,
+  `client/render/createTestScene.ts`. *Scope:* M.
+
+- [ ] **T7 — Drawn objects on the wire, the ghost, and the solid transition (R-03).**
+  Snapshots carry the drawn-object list (decision 2) and the codec encodes it.
+  The client renders a translucent, non-colliding ghost from the moment it
+  submits, swaps it for the confirmed object when the snapshot names it, and only
+  then adds the collider to its own prediction world.
   *Accept:*
-  - unit tests for the recorder, the cursor mapping and the movement
-    suppression;
-  - draw mode never releases pointer lock.
+  - the **R-03 invariant test**: for every object in a snapshot,
+    `solidFromTick <= serverTick`, so every replayed tick sees a consistent
+    world (decision 3);
+  - round-trip tests for the new snapshot fields;
+  - under 150 ms injected latency the ghost covers the whole window and the
+    player is never corrected *through* a confirmed wall;
+  - the ghost never collides.
 
-  Landed in `shared/sim/drawMode.ts` (the suppression rule, applied by
-  `stepPlayer`), `client/drawing/` (`cursor.ts`, `StrokeRecorder.ts`,
-  `DrawMode.ts`), `client/render/createChalkPlane.ts`, a `draw` pose in
-  `handRig`, and a second pause-menu slider. `DrawMode` takes a frame of
-  plain values and holds no DOM handle, so it *cannot* release pointer lock.
-  LMB is the stroke button while the chalk is up. Decisions recorded as
-  SPEC_AUDIT D-10. **The feel pass (cursor speed, sample rate, fade, hand
-  pose) is still owed** — see ROADMAP exit criteria 4 and 10.
+  *Depends on:* T6. *Files:* `protocol/messages.ts`, `protocol/codec.ts`,
+  `sim/MatchSimulation.ts`, `sim/SimulationHost.ts`, `client/net/NetClient.ts`,
+  `client/drawing/DrawnObjects.ts` + tests. *Scope:* L — **split if it grows past
+  five files.**
 
-- [x] **T7 — Submission, local preview, and specific feedback.**
-  - Releasing RMB quantizes, validates locally (hint plus instant feedback) and
-    sends.
-  - On `DrawingResult`, a creation burst names the recognized blueprint and its
-    quality ("SWORD — Sound", R-11).
-  - Failures read as specific messages: a smudge names the failed constraint,
-    for example "The crossguard didn't cross the blade". Unrecognized says it
-    couldn't be read. Unaffordable says how much is needed.
+- [ ] **T8 — The sword reaches the hands, graded.**
+  The equipped sword is visible in the viewmodel and carries its quality:
+  durability multiplied per decision 6, and a material that reads crude, sound
+  or keen. No swinging — that is Phase 5.
+  *Accept:* the quality→durability table; the viewmodel shows a sword only while
+  one is equipped; a replaced sword's durability does not carry over.
 
-  *Accept:* tests for the failure-code-to-message mapping and the outcome-to-UI
-  mapping.
+  *Depends on:* T4. *Files:* `client/hands/handRig.ts`,
+  `client/hands/createViewmodel.ts`, `drawing/drawnObject.ts` + tests. *Scope:* S.
 
-  Landed in `client/ui/drawingBanner.ts` (`describeDrawingResult`,
-  `failureDetail`, and the banner), `NetClient.sendDrawing` with
-  `drawingResult` / `drawingResultCount`, and the submission path in
-  `main.ts`. A smudge reports one failure, chosen by priority, named in the
-  blueprint's own parts. Fixtures reach client tests through a new
-  `@chalkbound/shared/testing/drawing` subpath. Decisions recorded as
-  SPEC_AUDIT D-11.
+- [ ] **T9 — Drawn-object health and destruction (RD-07).**
+  `damageObject()` on the authority: structures take damage, reach zero, and are
+  removed — collider and all. Tested directly, with no combat attached.
+  *Accept:* damage arithmetic and the destruction threshold; a destroyed wall
+  stops blocking within the same tick; damage from any player works, since
+  structures are the world's (RD-07); destroying an already-destroyed object is
+  a no-op, not an error.
 
-- [x] **T8 — Drawing feedback channel (D-02).**
-  - A chalk scratch loop, synthesized in Web Audio with no asset files, whose
-    gain and playback rate track cursor speed.
-  - Chalk dust particles at the cursor.
-  - Stroke glow on resolve.
+  *Depends on:* T5. *Files:* `sim/MatchSimulation.ts`, `drawing/drawnObject.ts`
+  + tests. *Scope:* S.
 
-  *Accept:* unit tests for the speed→gain/rate curve and the particle emission
-  rate; a manual check.
+- [ ] **T10 — Drawn objects render.**
+  Greybox meshes for wall and bridge, the ghost material, quality tinting, and a
+  destruction burst. Greybox primitives only — Phases 0–5 import no art.
+  *Accept:* mesh lifecycle tests (spawned, ghosted, confirmed, destroyed, with
+  no leaked meshes); a manual check for how the three qualities read apart.
 
-  Landed in `client/audio/chalkScratch.ts` (the curve) and
-  `createScratchVoice.ts` (synthesized Web Audio, no assets),
-  `client/drawing/DustField.ts`, `client/drawing/glow.ts`, and dust plus glow
-  rendering in `createChalkPlane`. The glow envelope starts at *submission*
-  and its 300 ms attack-plus-hold covers the verdict round trip (R-03).
-  Decisions recorded as SPEC_AUDIT D-12.
-  **The manual check is outstanding** — audio and particles cannot be
-  verified headlessly.
+  *Depends on:* T7, T9. *Files:* `client/render/createDrawnObjects.ts`,
+  `client/drawing/DrawnObjects.ts` + tests. *Scope:* M.
 
-- [x] **T9 — Codex, first pass.**
-  An overlay, opened by holding Tab, showing every known blueprint: its shape
-  drawn from the template's reference path with numbered stroke order, its
-  chalk cost, and whether you can afford it (from authoritative chalk).
-  *Accept:* tests for affordability and for generating the shape diagram.
+- [ ] **T11 — Phase 4 exit check.**
+  A headless probe draws all three blueprints end to end: the sword equips, the
+  wall blocks, the bridge is crossed — under injected latency and loss, as the
+  Phase 2 and 3 probes do. Docs updated: ROADMAP exit criteria marked with what
+  was actually verified, SPEC_AUDIT D-15…D-20 recorded, ARCHITECTURE §5.5
+  annotated with decision 3.
+  *Accept:* ROADMAP Phase 4 exit criteria 1–4 verified by the probe and the
+  suite; `pnpm probe:drawing` still passes; a new `pnpm probe:creation` passes at
+  150 ms / 5% loss.
 
-  Landed in `client/ui/codex.ts` (`blueprintDiagram`, `codexEntries` and the
-  overlay), a shared `client/drawing/blueprintNames.ts` now used by the
-  failure messages too, and a `Codex` action bound to Tab. The diagram is
-  generated from the blueprint's own `reference` path, so the taught shape
-  and the graded shape cannot drift. Decisions recorded as SPEC_AUDIT D-13.
+  *Depends on:* all. *Files:* `tools/probe/creation.mjs`, `package.json`,
+  `docs/{ROADMAP,SPEC_AUDIT,ARCHITECTURE}.md`. *Scope:* M.
 
-- [x] **T10 — Phase 3 exit check.**
-  - A headless probe picks up chalk, draws a sword through draw mode and gets
-    `created` (−20 chalk). A scribble gets `unrecognized` (−5).
-  - Pointer lock holds throughout.
-  - Docs are updated.
+---
 
-  *Accept:* ROADMAP exit criteria 2, 3, 5 and 9 verified by tests and the
-  probe. Criteria 4 (a human passes ≥ 9/10) and 10 (the feel gate) are the
-  user's call.
+## Checkpoints
 
-  Landed as `apps/client/src/drawing/drawLoop.test.ts` (the whole client path
-  at 60 Hz into a real authority) and `tools/probe/drawing.mjs`
-  (`pnpm probe:drawing`). The probe passes at 150 ms / 5% loss: a drawn sword
-  returns created / keen for 20 chalk, a scribble returns unrecognized for 5,
-  and pointer lock holds throughout. Criteria 2, 3, 5 and 9 are met; 4 and 10
-  remain owed, with T8's manual check. Fixed an intermittent failure in the
-  **Phase 2** probe along the way. Decisions recorded as SPEC_AUDIT D-14.
+- **After T2** — inference still works with three blueprints. If the confusion
+  matrix is not clean here, stop: the shapes are wrong, and nothing downstream
+  is worth building until they are right.
+- **After T6** — a drawn structure is real: it exists, it collides, it can be
+  stood on. The riskiest half of the phase is done.
+- **After T11** — the full phase. Report, and hand the feel gate to the user.
+
+## Carried forward from Phase 3 — still owed, still the user's call
+
+Not Phase 4 work, and not closable by me:
+- the feel pass on cursor speed, sample rate, plane fade and hand timing (T6);
+- the manual check of scratch audio and dust particles (T8);
+- ROADMAP criterion 4 (a human passes ≥ 9/10 sword draws) and criterion 10 (the
+  feel gate).
+
+Phase 4 proceeds without them because the roadmap's hard gate sits before
+**Phase 6**, not Phase 4 — but every task below is built on drawing feel that
+has not yet been signed off.
+
+## Open questions
+
+1. Does drawing a second sword **replacing** the first feel right, or should the
+   submission be refused while one is held? Decision 5 picks replacement because
+   it never blocks the player's own verb; it is cheap to invert if it feels
+   wasteful in the hand.
+2. Should a structure placed into a wall be nudged to the nearest free spot
+   rather than simply overlapping it (decision 1)? Deferred to Phase 6, when the
+   real geometry makes the answer obvious.
+3. Wall and bridge sizes are [PLACEHOLDER]. A 2 m wall in a 3 m room may read as
+   either cover or an obstruction; the play check at T11 is the first chance to
+   judge it.
