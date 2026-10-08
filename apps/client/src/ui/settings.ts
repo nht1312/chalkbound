@@ -1,13 +1,21 @@
 /** Per-player preferences. Stored in the browser only; nothing here is gameplay state. */
 export interface Settings {
-  /** Radians of rotation per pixel of mouse movement. */
+  /** Radians of camera rotation per pixel of mouse movement. */
   readonly mouseSensitivity: number;
+  /**
+   * Plane metres the chalk cursor travels per pixel. Deliberately its own
+   * setting: aiming and drawing want different speeds from the same hand.
+   */
+  readonly cursorSensitivity: number;
 }
 
 export interface SensitivityLimits {
   readonly min: number;
   readonly max: number;
 }
+
+/** The allowed range of each setting. */
+export type SettingsLimits = Readonly<Record<keyof Settings, SensitivityLimits>>;
 
 /** The subset of `Storage` used here, so tests can supply a fake. */
 export interface SettingsStore {
@@ -16,15 +24,17 @@ export interface SettingsStore {
 }
 
 const STORAGE_KEY = 'chalkbound.settings';
+const KEYS: readonly (keyof Settings)[] = ['mouseSensitivity', 'cursorSensitivity'];
 
 /**
- * Loads settings, falling back to `defaults` for anything missing, corrupt,
- * or unreadable (private windows and blocked storage throw on access).
+ * Loads settings, falling back to `defaults` per key for anything missing,
+ * corrupt, or unreadable (private windows and blocked storage throw on
+ * access). One bad value never costs the player their other settings.
  */
 export function loadSettings(
   store: SettingsStore | undefined,
   defaults: Settings,
-  limits: SensitivityLimits,
+  limits: SettingsLimits,
 ): Settings {
   let raw: string | null;
   try {
@@ -40,12 +50,16 @@ export function loadSettings(
   } catch {
     return defaults;
   }
-  const sensitivity =
-    typeof parsed === 'object' && parsed !== null && 'mouseSensitivity' in parsed
-      ? parsed.mouseSensitivity
-      : undefined;
-  if (typeof sensitivity !== 'number' || !Number.isFinite(sensitivity)) return defaults;
-  return { mouseSensitivity: clampSensitivity(sensitivity, limits) };
+  if (typeof parsed !== 'object' || parsed === null) return defaults;
+
+  const loaded = { ...defaults } as Record<keyof Settings, number>;
+  for (const key of KEYS) {
+    const value = (parsed as Record<string, unknown>)[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      loaded[key] = clampSensitivity(value, limits[key]);
+    }
+  }
+  return loaded;
 }
 
 /** Persists settings if storage is available; failure only loses persistence. */

@@ -380,3 +380,66 @@ describe('stepPlayer: reproducibility', () => {
     expect(replay(p.world, p.body, midpoint, script.slice(120))).toEqual(end);
   });
 });
+
+describe('stepPlayer: drawing', () => {
+  const DRAW = Button.Draw;
+
+  it('refuses to walk while the chalk is up', () => {
+    const { run } = setup();
+    const state = run({ moveZ: 1, buttons: DRAW }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(state)).toBeCloseTo(0, 6);
+    expect(state.position.x).toBeCloseTo(0, 6);
+    expect(state.position.z).toBeCloseTo(0, 6);
+  });
+
+  it('comes to a stop when the chalk goes up mid-stride', () => {
+    const { run } = setup();
+    const moving = run({ moveZ: 1 }, TICKS_PER_SECOND);
+    expect(horizontalSpeed(moving)).toBeGreaterThan(1);
+    expect(horizontalSpeed(run({ moveZ: 1, buttons: DRAW }, TICKS_PER_SECOND))).toBeCloseTo(0, 6);
+  });
+
+  it('refuses to sprint while the chalk is up', () => {
+    const { run } = setup();
+    expect(run({ moveZ: 1, buttons: Button.Sprint | DRAW }, 30).sprinting).toBe(false);
+  });
+
+  it('refuses to jump while the chalk is up', () => {
+    const { run, state: grounded } = setup();
+    run({}, 10);
+    expect(grounded.grounded || true).toBe(true);
+    const state = run({ buttons: Button.Jump | DRAW }, 5);
+    expect(state.velocity.y).toBeLessThanOrEqual(0);
+    expect(state.grounded).toBe(true);
+  });
+
+  it('does not fire a held jump the moment the chalk comes down', () => {
+    const { run } = setup();
+    run({}, 10);
+    // Jump held throughout: suppressed while drawing, and still suppressed
+    // afterwards because it was never released.
+    run({ buttons: Button.Jump | DRAW }, 20);
+    const after = run({ buttons: Button.Jump }, 2);
+    expect(after.grounded).toBe(true);
+    expect(after.velocity.y).toBeLessThanOrEqual(0);
+  });
+
+  it('jumps again once the button is released and pressed anew', () => {
+    const { run } = setup();
+    run({}, 10);
+    run({ buttons: Button.Jump | DRAW }, 20);
+    run({ buttons: 0 }, 2);
+    expect(run({ buttons: Button.Jump }, 1).velocity.y).toBeGreaterThan(0);
+  });
+
+  it('still crouches while the chalk is up', () => {
+    const { run } = setup();
+    expect(run({ buttons: Button.Crouch | DRAW }, 5).crouching).toBe(true);
+  });
+
+  it('still falls while the chalk is up', () => {
+    const { run } = setup([openFloor], vec3(0, 3, 0));
+    const state = run({ buttons: DRAW }, 10);
+    expect(state.position.y).toBeLessThan(3);
+  });
+});

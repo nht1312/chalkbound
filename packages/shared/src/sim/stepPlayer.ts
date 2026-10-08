@@ -4,6 +4,7 @@ import { vec3, type Vec3 } from '../math/vec';
 import { PLAYER_GROUPS, PLAYER_MOVEMENT_QUERY } from '../physics/collisionGroups';
 import type { PhysicsWorld, Rapier } from '../physics/staticWorld';
 import { Button, type InputCommand } from '../protocol/messages';
+import { applyDrawMode } from './drawMode';
 import { canJump, canSprint, FULL_STAMINA, updateStamina, type StaminaState } from './stamina';
 
 /**
@@ -97,11 +98,13 @@ export function createPlayerBody(rapier: Rapier, world: PhysicsWorld): PlayerBod
  */
 export function stepPlayer(
   state: PlayerState,
-  command: InputCommand,
+  rawCommand: InputCommand,
   body: PlayerBody,
   world: PhysicsWorld,
   dt: number,
 ): PlayerState {
+  // Raising the chalk pins the player in place and frees neither hand.
+  const command = applyDrawMode(rawCommand);
   const held = (button: number): boolean => (command.buttons & button) !== 0;
 
   // Crouch: pressing always crouches; releasing stands only if there is room.
@@ -187,7 +190,10 @@ export function stepPlayer(
     velocity: f32Vec(vx, vy, vz),
     grounded,
     crouching,
-    jumpHeld: held(Button.Jump),
+    // The *raw* button, so a jump held through a drawing stays spent: lowering
+    // the chalk should not re-arm the edge trigger and fire a jump nobody asked
+    // for.
+    jumpHeld: (rawCommand.buttons & Button.Jump) !== 0,
     sprinting,
     stamina: { value: Math.fround(stamina.value), regenDelay: Math.fround(stamina.regenDelay) },
   };

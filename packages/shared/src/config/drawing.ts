@@ -61,6 +61,14 @@ export const DRAWING = {
    */
   closureGapRatio: 0.25,
 
+  /** The chalk plane the player draws on (SPEC §6.7, plan decision 8). */
+  plane: {
+    /** Distance ahead of the eye, metres. */
+    distanceM: 1.2,
+    /** Drawable area, metres square. The cursor is clamped to it. */
+    sizeM: 0.8,
+  },
+
   /**
    * Shortest gap the authority accepts between one player's submissions
    * (plan decision 5). An anti-flood measure, not a gameplay rule: drawing,
@@ -88,8 +96,8 @@ export const DRAWING = {
     coordStepM: 0.0005,
     /**
      * Coordinates are clamped this far from the plane centre before
-     * quantizing. The drawable area is 0.8 m square (plan decision 8); the
-     * margin keeps a cursor sitting exactly on the edge from rounding out.
+     * quantizing. Wider than half the drawable area, so a cursor sitting
+     * exactly on the edge cannot round its way out of range.
      */
     coordLimitM: 0.5,
     /** Longest sketch the wire carries, in milliseconds. [PLACEHOLDER] */

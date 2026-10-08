@@ -18,6 +18,12 @@ const config: HandRigConfig = {
     idle: { offset: { x: 0, y: 0, z: 0 }, pitch: 0, sway: 0.006 },
     walk: { offset: { x: 0, y: -0.01, z: 0 }, pitch: 0, sway: 0.012 },
     sprint: { offset: { x: 0, y: -0.06, z: 0.04 }, pitch: -0.35, sway: 0.03 },
+    draw: {
+      offset: { x: 0, y: -0.02, z: 0.02 },
+      rightOffset: { x: -0.12, y: 0.26, z: -0.18 },
+      pitch: 0.25,
+      sway: 0.002,
+    },
   },
 };
 
@@ -32,7 +38,8 @@ function run(state: HandRigState, sample: MovementSample, seconds: number): Hand
   return s;
 }
 
-const sum = (s: HandRigState): number => s.weights.idle + s.weights.walk + s.weights.sprint;
+const sum = (s: HandRigState): number =>
+  s.weights.idle + s.weights.walk + s.weights.sprint + s.weights.draw;
 
 describe('selectHandPose', () => {
   it('picks idle, walk or sprint from movement', () => {
@@ -48,7 +55,7 @@ describe('selectHandPose', () => {
 
 describe('pose blending', () => {
   it('starts fully idle', () => {
-    expect(initialHandRig().weights).toEqual({ idle: 1, walk: 0, sprint: 0 });
+    expect(initialHandRig().weights).toEqual({ idle: 1, walk: 0, sprint: 0, draw: 0 });
   });
 
   it('blends toward the new pose instead of snapping, keeping weights normalised', () => {
@@ -97,5 +104,53 @@ describe('handTransforms', () => {
     const leftDx = t.left.x - config.rest.left.x;
     const rightDx = t.right.x - config.rest.right.x;
     expect(leftDx).toBeCloseTo(rightDx, 9); // both hands move the same way with the body
+  });
+});
+
+describe('selectHandPose while drawing', () => {
+  const drawing: MovementSample = { ...still, drawing: true };
+
+  it('raises the chalk hand whatever the feet are doing', () => {
+    expect(selectHandPose(drawing, config)).toBe('draw');
+    expect(selectHandPose({ ...walking, drawing: true }, config)).toBe('draw');
+    expect(selectHandPose({ ...sprinting, drawing: true }, config)).toBe('draw');
+    expect(selectHandPose({ ...drawing, grounded: false }, config)).toBe('draw');
+  });
+
+  it('is not selected when the chalk is down', () => {
+    expect(selectHandPose({ ...still, drawing: false }, config)).toBe('idle');
+    expect(selectHandPose(still, config)).toBe('idle');
+  });
+
+  it('blends all the way to the draw pose and back', () => {
+    const up = run(initialHandRig(), drawing, 1);
+    expect(up.weights.draw).toBeGreaterThan(0.99);
+    expect(sum(up)).toBeCloseTo(1, 6);
+
+    const down = run(up, still, 1);
+    expect(down.weights.draw).toBeLessThan(0.01);
+    expect(sum(down)).toBeCloseTo(1, 6);
+  });
+
+  it('lifts the right hand much further than the left', () => {
+    const up = run(initialHandRig(), drawing, 1);
+    const { left, right } = handTransforms(up, 0, config);
+    const leftLift = left.y - config.rest.left.y;
+    const rightLift = right.y - config.rest.right.y;
+    expect(rightLift).toBeGreaterThan(0.2);
+    expect(leftLift).toBeLessThan(0);
+  });
+
+  it('reaches the right hand toward the plane', () => {
+    const up = run(initialHandRig(), drawing, 1);
+    const { left, right } = handTransforms(up, 0, config);
+    expect(right.z).toBeLessThan(config.rest.right.z);
+    expect(right.z).toBeLessThan(left.z);
+  });
+
+  it('leaves the right hand where it was when not drawing', () => {
+    const idle = run(initialHandRig(), still, 1);
+    const { left, right } = handTransforms(idle, 0, config);
+    expect(right.y - config.rest.right.y).toBeCloseTo(left.y - config.rest.left.y, 9);
   });
 });

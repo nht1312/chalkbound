@@ -868,6 +868,29 @@ the worst case rather than the typical one.
 
 ---
 
+### D-10 — Phase 3 client draw-mode decisions (T6) — **PENDING APPROVAL**
+
+| # | Topic | Decision | Reason |
+|---|---|---|---|
+| a | Suppression is one shared function | `applyDrawMode(command)` zeroes movement and masks Jump, Sprint and Attack; `stepPlayer` calls it first, so client prediction and the authority read the identical command | Two copies that disagreed would rubber-band the player every time anyone drew. It also means combat (Phase 5) gets the rule for free by reading the masked buttons |
+| b | Crouch and Interact survive | Only Jump, Sprint and Attack are masked | Drawing occupies the hands, not the knees, and letting a player crouch behind cover while sketching is the kind of choice the risk pillar wants |
+| c | `jumpHeld` tracks the **raw** button | The returned state records the unmasked Jump bit | Otherwise a jump held through a drawing re-arms the edge trigger, and lowering the chalk fires a jump nobody asked for |
+| d | Look is never suppressed | Yaw and pitch pass through the authority untouched; the *client* stops feeding the camera instead | The authority has no business overriding where a player is looking, and freezing the camera is a view concern |
+| e | Entry is edge-triggered | Draw mode starts only on a fresh press, never by holding the button through a refusal | Holding RMB with an empty meter and having the plane appear the instant a pickup lands is a surprise, and a surprise that costs chalk |
+| f | `DrawMode` owns no DOM handle | It takes a frame of booleans and numbers (`pointerLocked`, `chalk`, mouse deltas) and returns an event | It is then *structurally* incapable of releasing pointer lock (RD-08), which is the guarantee the vertical slice names. A test can only show a negative; a type can prevent it |
+| g | LMB is both Attack and the stroke button | `Attack` draws while the chalk is up, and the shared rule masks the attack itself | One button, two unambiguous meanings — the chalk is either up or down — and no new binding to teach or rebind |
+| h | Unknown chalk blocks drawing | Before the first snapshot `net.chalk` is undefined and draw mode treats it as 0 | Unknown must not mean allowed: raising a plane the player may not be able to pay for teaches the wrong thing |
+| i | The plane lives in the viewmodel scene | Rendered with the hands over a cleared depth buffer, not in the world | A conjured plane half-eaten by a doorframe reads as a bug. It also cannot clip when a player draws facing a wall |
+| j | The trail is a quad ribbon | Not `THREE.Line` | WebGL ignores line width, and a one-pixel sketch is unreadable at the moment the player most needs to see it |
+| k | Cursor speed is its own setting | A second pause-menu slider, stored beside mouse sensitivity, with per-key fallback on load | The speed that aims well is not the speed that draws well. Per-key fallback means one corrupt value does not reset the other |
+
+**Open to the feel pass.** `cursorSensitivity` 0.0012 m/px, `sampleRate` 90 Hz,
+`minDistance` 3 mm, `fadeSeconds` 0.15 and the draw hand pose are all
+[PLACEHOLDER] first guesses. The ROADMAP budgets 2–3 iterations here and no
+test can settle any of them.
+
+---
+
 ## 6. Open questions requiring a decision before implementation
 
 ### Resolved — 2026-10-07

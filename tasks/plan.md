@@ -126,7 +126,7 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   logged**: `shared` has no logger, so surfacing them is the host app's job.
   Decisions recorded as SPEC_AUDIT D-09.
 
-- [ ] **T6 — Client draw mode.**
+- [x] **T6 — Client draw mode.**
   - Holding RMB enters draw mode only with chalk > 0.
   - Camera rotation freezes, and raw deltas drive a virtual cursor (pointer
     lock is kept).
@@ -142,6 +142,15 @@ VFX naming the blueprint. *Spawning* the sword into the hands is Phase 4
   - unit tests for the recorder, the cursor mapping and the movement
     suppression;
   - draw mode never releases pointer lock.
+
+  Landed in `shared/sim/drawMode.ts` (the suppression rule, applied by
+  `stepPlayer`), `client/drawing/` (`cursor.ts`, `StrokeRecorder.ts`,
+  `DrawMode.ts`), `client/render/createChalkPlane.ts`, a `draw` pose in
+  `handRig`, and a second pause-menu slider. `DrawMode` takes a frame of
+  plain values and holds no DOM handle, so it *cannot* release pointer lock.
+  LMB is the stroke button while the chalk is up. Decisions recorded as
+  SPEC_AUDIT D-10. **The feel pass (cursor speed, sample rate, fade, hand
+  pose) is still owed** — see ROADMAP exit criteria 4 and 10.
 
 - [ ] **T7 — Submission, local preview, and specific feedback.**
   - Releasing RMB quantizes, validates locally (hint plus instant feedback) and

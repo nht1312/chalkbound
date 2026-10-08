@@ -72,6 +72,7 @@ export {
   type StaminaUse,
 } from './sim/stamina';
 export { addChalk } from './sim/chalk';
+export { applyDrawMode, isDrawing } from './sim/drawMode';
 export {
   addItem,
   createInventory,

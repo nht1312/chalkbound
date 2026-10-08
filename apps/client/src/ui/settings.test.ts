@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { loadSettings, saveSettings, type SettingsStore } from './settings';
 
-const limits = { min: 0.0005, max: 0.006 };
-const defaults = { mouseSensitivity: 0.0022 };
+const limits = {
+  mouseSensitivity: { min: 0.0005, max: 0.006 },
+  cursorSensitivity: { min: 0.0003, max: 0.004 },
+};
+const defaults = { mouseSensitivity: 0.0022, cursorSensitivity: 0.0012 };
 
 function memoryStore(
   initial: Record<string, string> = {},
@@ -35,16 +38,39 @@ describe('settings', () => {
     expect(loadSettings(undefined, defaults, limits)).toEqual(defaults);
   });
 
-  it('round-trips a saved sensitivity', () => {
+  it('round-trips both saved sensitivities', () => {
     const store = memoryStore();
-    saveSettings(store, { mouseSensitivity: 0.004 });
-    expect(loadSettings(store, defaults, limits).mouseSensitivity).toBe(0.004);
+    saveSettings(store, { mouseSensitivity: 0.004, cursorSensitivity: 0.002 });
+    expect(loadSettings(store, defaults, limits)).toEqual({
+      mouseSensitivity: 0.004,
+      cursorSensitivity: 0.002,
+    });
   });
 
-  it('clamps an out-of-range stored value', () => {
+  it('clamps each value to its own range', () => {
     const store = memoryStore();
-    saveSettings(store, { mouseSensitivity: 99 });
-    expect(loadSettings(store, defaults, limits).mouseSensitivity).toBe(limits.max);
+    saveSettings(store, { mouseSensitivity: 99, cursorSensitivity: 99 });
+    const loaded = loadSettings(store, defaults, limits);
+    expect(loaded.mouseSensitivity).toBe(limits.mouseSensitivity.max);
+    expect(loaded.cursorSensitivity).toBe(limits.cursorSensitivity.max);
+  });
+
+  it('keeps the good half when only one value is unusable', () => {
+    const store = memoryStore({
+      'chalkbound.settings': '{"mouseSensitivity":0.004,"cursorSensitivity":"fast"}',
+    });
+    expect(loadSettings(store, defaults, limits)).toEqual({
+      mouseSensitivity: 0.004,
+      cursorSensitivity: defaults.cursorSensitivity,
+    });
+  });
+
+  it('reads settings saved before the cursor setting existed', () => {
+    const store = memoryStore({ 'chalkbound.settings': '{"mouseSensitivity":0.004}' });
+    expect(loadSettings(store, defaults, limits)).toEqual({
+      mouseSensitivity: 0.004,
+      cursorSensitivity: defaults.cursorSensitivity,
+    });
   });
 
   it('ignores corrupt or wrongly typed data', () => {

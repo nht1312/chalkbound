@@ -1,4 +1,4 @@
-import { INTERACTION, MOVEMENT } from '@chalkbound/shared';
+import { DRAWING, INTERACTION, MOVEMENT } from '@chalkbound/shared';
 
 /** Client-only tuning values. Gameplay rules belong in @chalkbound/shared. */
 export const CLIENT_CONFIG = {
@@ -52,7 +52,43 @@ export const CLIENT_CONFIG = {
         walk: { offset: { x: 0, y: -0.01, z: 0 }, pitch: 0, sway: 0.012 },
         // Arms drop and tilt down while running.
         sprint: { offset: { x: 0, y: -0.06, z: 0.04 }, pitch: -0.35, sway: 0.03 },
+        // The chalk hand comes up to the plane; the other drops out of the way.
+        // Almost no sway: a drawing hand is a steady one.
+        draw: {
+          offset: { x: 0, y: -0.02, z: 0.02 },
+          rightOffset: { x: -0.12, y: 0.26, z: -0.18 },
+          pitch: 0.25,
+          sway: 0.002,
+        },
       },
+    },
+  },
+  /** Raising the chalk and drawing on the plane (Phase 3 T6). */
+  drawing: {
+    /**
+     * Plane metres the cursor travels per pixel. Separate from look
+     * sensitivity on purpose: the speed that aims well is not the speed that
+     * draws well, and the plan budgets feel iterations on exactly this.
+     */
+    cursorSensitivity: 0.0012,
+    cursorSensitivityLimits: { min: 0.0003, max: 0.004 },
+    /** Half-width of the drawable square, from the shared plane size. */
+    halfExtent: DRAWING.plane.sizeM / 2,
+    /** How long the plane takes to arrive, and to leave. */
+    fadeSeconds: 0.15,
+    recorder: {
+      /** Samples per second. Above the tick rate: drawing is a drawn line, not a step. */
+      sampleRate: 90,
+      /** Plane metres between kept samples; below this the hand is dwelling, not drawing. */
+      minDistance: 0.003,
+    },
+    plane: {
+      /** Distance ahead in the viewmodel scene, from the shared plane distance. */
+      distance: DRAWING.plane.distanceM,
+      /** Drawn slightly larger than the drawable area, so the edge is visible. */
+      margin: 0.06,
+      /** Chalk trail width, metres. */
+      trailWidth: 0.012,
     },
   },
   /** Aiming at world objects for the interact prompt (Phase 2 T5). */

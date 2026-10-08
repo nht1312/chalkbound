@@ -5,6 +5,7 @@ import {
   ECONOMY,
   eyePosition,
   FixedStepRunner,
+  DRAWING,
   initialPlayerState,
   quantizeInputCommand,
   SIMULATION_TIMESTEP,
@@ -14,6 +15,7 @@ import { bobOffset, initialCameraFeel, updateCameraFeel } from './camera/cameraF
 import { FppCamera } from './camera/FppCamera';
 import { createViewmodel } from './hands/createViewmodel';
 import { handTransforms, initialHandRig, updateHandRig } from './hands/handRig';
+import { DrawMode } from './drawing/DrawMode';
 import { createDebugReadout } from './debug/debugReadout';
 import { createStatsOverlay } from './debug/statsOverlay';
 import { DEFAULT_BINDINGS } from './input/bindings';
@@ -27,6 +29,7 @@ import { loadPhysics, loadRapier, type ClientPhysics } from './physics/loadPhysi
 import { PlayerPredictor } from './player/PlayerPredictor';
 import { lookDirection, selectInteractTarget } from './interaction/targeting';
 import { createChalkBoxes } from './render/createChalkBoxes';
+import { createChalkPlane } from './render/createChalkPlane';
 import { createRenderer } from './render/createRenderer';
 import { createTestScene } from './render/createTestScene';
 import { createChalkMeter } from './ui/chalkMeter';
@@ -84,22 +87,41 @@ function bootstrap(): void {
   );
 
   const input = new InputState(canvas, DEFAULT_BINDINGS);
+  const drawCfg = CLIENT_CONFIG.drawing;
   const settingsStore = browserSettingsStore();
+  const settingsLimits = {
+    mouseSensitivity: camCfg.sensitivityLimits,
+    cursorSensitivity: drawCfg.cursorSensitivityLimits,
+  };
   const settings = loadSettings(
     settingsStore,
-    { mouseSensitivity: camCfg.mouseSensitivity },
-    camCfg.sensitivityLimits,
+    {
+      mouseSensitivity: camCfg.mouseSensitivity,
+      cursorSensitivity: drawCfg.cursorSensitivity,
+    },
+    settingsLimits,
   );
   const look = new FppCamera({
     sensitivity: settings.mouseSensitivity,
     pitchLimit: camCfg.pitchLimit,
   });
+  const drawMode = new DrawMode({
+    cursor: { sensitivity: settings.cursorSensitivity, halfExtent: drawCfg.halfExtent },
+    recorder: drawCfg.recorder,
+    fadeSeconds: drawCfg.fadeSeconds,
+  });
+  const chalkPlane = createChalkPlane(
+    viewmodel.scene,
+    { ...drawCfg.plane, halfExtent: drawCfg.halfExtent },
+    DRAWING.wire.maxStrokes * DRAWING.wire.maxPointsPerStroke,
+  );
   createPauseMenu(root, input, {
-    sensitivity: settings.mouseSensitivity,
-    limits: camCfg.sensitivityLimits,
-    onSensitivityChange(mouseSensitivity) {
-      look.setSensitivity(mouseSensitivity);
-      saveSettings(settingsStore, { mouseSensitivity });
+    settings,
+    limits: settingsLimits,
+    onSettingsChange(next) {
+      look.setSensitivity(next.mouseSensitivity);
+      drawMode.setCursorSensitivity(next.cursorSensitivity);
+      saveSettings(settingsStore, next);
     },
   });
 
@@ -140,7 +162,22 @@ function bootstrap(): void {
 
     // Look is applied per rendered frame for responsiveness; movement runs on the fixed tick.
     const { dx, dy } = input.consumeMouseDelta();
-    look.applyMouseDelta(dx, dy);
+    // While the chalk is up the same deltas drive the cursor, and the camera
+    // holds still. Pointer lock is never released either way (RD-08).
+    drawMode.update({
+      drawHeld: input.isDown('Draw'),
+      strokeHeld: input.isDown('Attack'),
+      pointerLocked: input.pointerLocked,
+      // Unknown until the first snapshot, and unknown must not mean "allowed":
+      // raising the chalk before the authority has spoken would show a plane
+      // the player may have no chalk for.
+      chalk: net.chalk ?? 0,
+      mouseDx: dx,
+      mouseDy: dy,
+      timeMs: time,
+      dt: frameDelta,
+    });
+    if (!drawMode.active) look.applyMouseDelta(dx, dy);
 
     if (predictor && net.authoritativePlayer && net.snapshotCount !== reconciledSnapshots) {
       reconciledSnapshots = net.snapshotCount;
@@ -156,6 +193,7 @@ function bootstrap(): void {
       grounded: player?.grounded ?? true,
       crouching: player?.crouching ?? false,
       sprinting: player?.sprinting ?? false,
+      drawing: drawMode.active,
     };
     feel = updateCameraFeel(feel, movement, frameDelta, feelCfg);
     handRig = updateHandRig(handRig, movement, frameDelta, CLIENT_CONFIG.hands.rig);
@@ -177,14 +215,15 @@ function bootstrap(): void {
     // Chalk: everything shown comes from the newest snapshot; E only sends an intent.
     chalkBoxes.update(net.chalkBoxes);
     chalkMeter.update(net.chalk);
-    const target = player
-      ? selectInteractTarget(
-          eyePosition(player),
-          lookDirection(look.yaw, look.pitch),
-          level.chalkBoxes.map((b) => ({ ...b, remaining: net.chalkBoxes.get(b.id) })),
-          CLIENT_CONFIG.targeting,
-        )
-      : undefined;
+    const target =
+      player && !drawMode.active
+        ? selectInteractTarget(
+            eyePosition(player),
+            lookDirection(look.yaw, look.pitch),
+            level.chalkBoxes.map((b) => ({ ...b, remaining: net.chalkBoxes.get(b.id) })),
+            CLIENT_CONFIG.targeting,
+          )
+        : undefined;
     chalkBoxes.setTargeted(target);
     const meterFull = net.chalk === ECONOMY.chalk.max;
     prompt.show(target === undefined ? undefined : meterFull ? 'Chalk full' : 'E  Pick up chalk');
@@ -193,6 +232,7 @@ function bootstrap(): void {
       net.sendInteract(target);
     }
     interactWasDown = interactDown;
+    chalkPlane.update(drawMode.planeOpacity, drawMode.strokes, drawMode.cursor);
     // World, then hands over a cleared depth buffer so they never clip into walls.
     renderer.info.reset();
     renderer.clear();
