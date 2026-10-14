@@ -93,6 +93,8 @@ export function createQuocHocHueLevel(): LevelData {
     boxes,
     spawn: vec3(0, 0.1, 20),
     chalkBoxes,
+    // No training dummy: these are maps, not the practice room.
+    dummies: [],
   };
 }
 
@@ -158,6 +160,8 @@ export function createChuVanAnLevel(): LevelData {
     boxes,
     spawn: vec3(0, 0.1, 8),
     chalkBoxes,
+    // No training dummy: these are maps, not the practice room.
+    dummies: [],
   };
 }
 
@@ -229,6 +233,8 @@ export function createDaLatLyceeLevel(): LevelData {
     boxes,
     spawn: vec3(0, 0.1, 8),
     chalkBoxes,
+    // No training dummy: these are maps, not the practice room.
+    dummies: [],
   };
 }
 

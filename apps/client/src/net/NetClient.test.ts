@@ -157,6 +157,7 @@ describe('NetClient drawing submissions', () => {
       ],
       spawn: vec3(0, 0, 0),
       chalkBoxes: [{ id: 1, position: vec3(0, 1.2, -1) }],
+      dummies: [],
     };
     const host = new SimulationHost(new MatchSimulation(RAPIER, level));
     host.connect(serverEnd);

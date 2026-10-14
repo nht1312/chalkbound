@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGreyboxRoom, FLOOR_GAP } from './greyboxRoom';
 
+import { COMBAT } from '../config/combat';
 import { CREATION } from '../config/creation';
 import { MOVEMENT } from '../config/movement';
 
@@ -79,6 +80,51 @@ describe('the floor gap', () => {
       const far = desk.center.z + desk.halfExtents.z;
       const overlaps = near < FLOOR_GAP.toZ && far > FLOOR_GAP.fromZ;
       expect(overlaps, `${desk.id} hangs over the gap`).toBe(false);
+    }
+  });
+});
+
+describe('the training dummy', () => {
+  const level = createGreyboxRoom();
+  const floors = level.boxes.filter((b) => b.kind === 'floor');
+  const solids = level.boxes.filter((b) => b.kind !== 'floor');
+
+  it('authors exactly one, with a wire-sized id', () => {
+    expect(level.dummies).toHaveLength(1);
+    const dummy = level.dummies[0];
+    expect(dummy).toBeDefined();
+    expect(Number.isInteger(dummy?.id)).toBe(true);
+    expect(dummy?.id).toBeGreaterThanOrEqual(1);
+    expect(dummy?.id).toBeLessThanOrEqual(U16_MAX);
+  });
+
+  it('stands on the floor rather than in the trench', () => {
+    for (const dummy of level.dummies) {
+      const { x, z } = dummy.position;
+      const standing = floors.some(
+        (f) =>
+          Math.abs(x - f.center.x) <= f.halfExtents.x &&
+          Math.abs(z - f.center.z) <= f.halfExtents.z,
+      );
+      expect(standing).toBe(true);
+      expect(dummy.position.y).toBe(0);
+    }
+  });
+
+  it('stands on the near side, so practising never needs a bridge', () => {
+    for (const dummy of level.dummies) {
+      expect(dummy.position.z).toBeGreaterThan(FLOOR_GAP.toZ);
+    }
+  });
+
+  it('stands clear of the desks and walls, with room to swing at it', () => {
+    const radius = COMBAT.dummy.radius;
+    for (const dummy of level.dummies) {
+      for (const box of solids) {
+        const dx = Math.abs(dummy.position.x - box.center.x) - box.halfExtents.x;
+        const dz = Math.abs(dummy.position.z - box.center.z) - box.halfExtents.z;
+        expect(Math.max(dx, dz)).toBeGreaterThan(radius);
+      }
     }
   });
 });

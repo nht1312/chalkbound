@@ -27,6 +27,7 @@ const level: LevelData = {
   boxes: [{ id: 'floor', kind: 'floor', center: vec3(0, -0.5, 0), halfExtents: vec3(50, 0.5, 50) }],
   spawn: vec3(0, 0, 0),
   chalkBoxes: [],
+  dummies: [],
 };
 
 const cmd = (seq: number, partial: Partial<InputCommand> = {}): InputCommand => ({
@@ -563,6 +564,7 @@ describe('MatchSimulation drawing submissions', () => {
         boxes: [floor('near', GAP.toZ, 20), floor('far', -20, GAP.fromZ)],
         spawn: vec3(0, 0, EDGE_Z),
         chalkBoxes: [{ id: 1, position: vec3(0, 0.05, EDGE_Z), amount: chalk }],
+        dummies: [],
       });
       sim.addPlayer(1);
       sim.interact(1, 1);
@@ -886,5 +888,84 @@ describe('MatchSimulation player health and death', () => {
       expect(sim.damagePlayer(1, amount)).toBe('damaged');
       expect(sim.health(1)).toBe(MAX - SWORD);
     }
+  });
+});
+
+describe('MatchSimulation training dummy', () => {
+  const DUMMY_ID = 9;
+  const dummyLevel: LevelData = {
+    ...level,
+    dummies: [{ id: DUMMY_ID, position: vec3(0, 0, -2) }],
+  };
+  const DOWN_TICKS = Math.ceil(COMBAT.dummy.respawnDelaySeconds * TICKS_PER_SECOND);
+
+  const dummySim = (): MatchSimulation => new MatchSimulation(RAPIER, dummyLevel);
+
+  it('stands the authored dummies up at full health', () => {
+    const sim = dummySim();
+    expect(sim.dummyStates()).toEqual([
+      { id: DUMMY_ID, position: vec3(0, 0, -2), health: COMBAT.dummy.health, standing: true },
+    ]);
+  });
+
+  it('is a thing a swing can find, until it falls', () => {
+    const sim = dummySim();
+    expect(sim.dummyTargets().map((t) => t.id)).toEqual([DUMMY_ID]);
+    sim.damageDummy(DUMMY_ID, COMBAT.dummy.health);
+    expect(sim.dummyTargets()).toEqual([]);
+  });
+
+  it('takes authoritative damage and falls', () => {
+    const sim = dummySim();
+    expect(sim.damageDummy(DUMMY_ID, COMBAT.armed.damage)).toBe('damaged');
+    expect(sim.dummyStates()[0]?.health).toBe(COMBAT.dummy.health - COMBAT.armed.damage);
+    expect(sim.damageDummy(DUMMY_ID, COMBAT.dummy.health)).toBe('felled');
+    expect(sim.dummyStates()[0]?.standing).toBe(false);
+  });
+
+  it('reports a blow on a dummy that is not there', () => {
+    expect(dummySim().damageDummy(404, 10)).toBe('missing');
+  });
+
+  it('stands back up, hittable again, after the delay', () => {
+    const sim = dummySim();
+    sim.damageDummy(DUMMY_ID, COMBAT.dummy.health);
+    for (let i = 0; i < DOWN_TICKS - 1; i++) sim.step();
+    expect(sim.dummyStates()[0]?.standing).toBe(false);
+
+    sim.step();
+    expect(sim.dummyStates()[0]?.standing).toBe(true);
+    expect(sim.dummyStates()[0]?.health).toBe(COMBAT.dummy.health);
+    expect(sim.dummyTargets()).toHaveLength(1);
+  });
+
+  it('blocks nobody, and adds no collider the client would have to mirror', () => {
+    // A dummy that stopped a player would be geometry the prediction world
+    // has never heard of, and every step near it would mispredict (R-03).
+    const sim = dummySim();
+    sim.addPlayer(1);
+    // Straight at the dummy, two metres ahead (yaw 0 faces -Z).
+    for (let i = 0; i < 120; i++) {
+      sim.submitInputs(1, commands(i * 2 + 1, 2, { moveZ: 1 }));
+      sim.step();
+    }
+    expect(sim.playerState(1)?.position.z ?? 0).toBeLessThan(-2 - COMBAT.dummy.radius);
+  });
+
+  it('leaves the world identical to the one the client builds', () => {
+    const quiet = new MatchSimulation(RAPIER, level);
+    const withDummy = dummySim();
+    quiet.addPlayer(1);
+    withDummy.addPlayer(1);
+    for (let i = 1; i <= 300; i++) {
+      const command = cmd(i, { moveZ: 1, moveX: i % 40 < 20 ? 1 : -1 });
+      quiet.submitInputs(1, [command]);
+      withDummy.submitInputs(1, [command]);
+      quiet.step();
+      withDummy.step();
+    }
+    // Bit-identical, not merely close: a dummy must not move the player by a
+    // millimetre the client cannot reproduce.
+    expect(withDummy.playerState(1)?.position).toEqual(quiet.playerState(1)?.position);
   });
 });

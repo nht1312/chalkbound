@@ -107,6 +107,19 @@ export interface EquippedWeaponState {
 }
 
 /**
+ * A training dummy as the client needs to see it. Its size comes from the
+ * config and never changes; what the client cannot derive is how much of it
+ * is left and whether it is still standing.
+ */
+export interface DummyState {
+  readonly id: number;
+  /** Feet position. */
+  readonly position: Vec3;
+  readonly health: number;
+  readonly standing: boolean;
+}
+
+/**
  * A structure as the client needs to see it. Deliberately smaller than the
  * authority's `DrawnStructure`: size comes from the blueprint and the drawer
  * is nobody's business, since a structure belongs to the world (SPEC §7.4).

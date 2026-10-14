@@ -48,6 +48,7 @@ const level: LevelData = {
   boxes: [{ id: 'floor', kind: 'floor', center: vec3(0, -0.5, 0), halfExtents: vec3(50, 0.5, 50) }],
   spawn: vec3(0, 0, 0),
   chalkBoxes: [{ id: 1, position: vec3(0, 1.2, -1) }],
+  dummies: [],
 };
 
 /**

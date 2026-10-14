@@ -1,8 +1,9 @@
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { COMBAT } from '../config/combat';
 import { MOVEMENT } from '../config/movement';
+import { closestPointOnSegment, rayCapsuleDistance } from '../math/sweep';
 import { vec3, type Vec3 } from '../math/vec';
-import { HITTABLE_GROUPS, SWING_QUERY } from '../physics/collisionGroups';
+import { SWING_QUERY } from '../physics/collisionGroups';
 import type { PhysicsWorld, Rapier } from '../physics/staticWorld';
 
 /**
@@ -14,16 +15,19 @@ import type { PhysicsWorld, Rapier } from '../physics/staticWorld';
  * enough to forgive aim the player cannot see exactly, and that a miss still
  * reads as a miss.
  *
- * Targets are passed in **already rewound** (plan decision 3). This module
- * never reads anybody's current position, which is what keeps lag
- * compensation honest: the only world it can see is the one it is given.
+ * **This never changes the physics world.** The room and the structures
+ * standing in it are found with a read-only shape cast; capsule targets —
+ * players and dummies — are tested in arithmetic (`math/sweep`). The first
+ * draft gave each target a stand-in collider and stepped the world so the
+ * broad phase could see it, which is the obvious implementation and a
+ * prediction bug: `world.step()` alone shifts the character controller's next
+ * result by a fraction of a millimetre, the client never steps for a swing it
+ * did not resolve, and the two then disagree about where the player stands.
+ * The prediction suite caught it; the comment is here so it is not rebuilt.
  *
- * Rewound players are represented by stand-in colliders created for the
- * duration of one cast. That is a few colliders per swing, perhaps twice a
- * second per player, in exchange for the level's geometry, drawn structures
- * and player capsules all being tested by one query with one notion of
- * "nearest" — rather than three hand-rolled intersection routines that have
- * to agree with Rapier and with each other.
+ * Targets arrive **already rewound** (plan decision 3). This module cannot
+ * read anybody's current position, which is what keeps lag compensation
+ * honest: the only world it can see is the one it is given.
  */
 
 export type SwingTargetKind = 'player' | 'structure' | 'dummy';
@@ -40,12 +44,12 @@ export interface SwingHit extends SwingTarget {
   readonly point: Vec3;
 }
 
-/** A player as they were when the attacker swung — never as they are now. */
-export interface RewoundPlayer {
-  readonly id: number;
-  /** Feet position at the rewound tick. */
+/** A standing capsule a swing may hit: a rewound player, or a dummy. */
+export interface CapsuleTarget extends SwingTarget {
+  /** Feet position — for a player, at the rewound tick. */
   readonly feet: Vec3;
-  readonly crouching: boolean;
+  readonly height: number;
+  readonly radius: number;
 }
 
 export interface SwingSource {
@@ -55,99 +59,135 @@ export interface SwingSource {
   readonly direction: Vec3;
   /** Metres from the eye to the furthest surface the blade can touch. */
   readonly reach: number;
-  /** The attacker's own capsule, so a swing never lands on the swinger. */
-  readonly exclude?: RAPIER.Collider;
 }
 
 export interface SwingWorld {
   readonly rapier: Rapier;
   readonly world: PhysicsWorld;
   /**
-   * Standing colliders a swing may hit, by collider handle: drawn structures
-   * and the training dummy. Anything hit that is *not* in here is the room
-   * itself — a wall takes the blow and nothing takes damage.
+   * Drawn structures by collider handle. Anything the cast finds that is not
+   * in here is the room itself — a wall takes the blow and nothing is damaged.
    */
-  readonly colliderTargets: ReadonlyMap<number, SwingTarget>;
+  readonly structures: ReadonlyMap<number, number>;
 }
 
 const IDENTITY_ROTATION = { x: 0, y: 0, z: 0, w: 1 };
-const { capsule } = MOVEMENT;
 
-/** Rapier capsules are sized by the half-height of the cylinder between the caps. */
-const capsuleHalfHeight = (totalHeight: number): number => totalHeight / 2 - capsule.radius;
+/** A rewound player as a capsule target. */
+export function playerTarget(id: number, feet: Vec3, crouching: boolean): CapsuleTarget {
+  const { capsule } = MOVEMENT;
+  return {
+    kind: 'player',
+    id,
+    feet,
+    height: crouching ? capsule.crouchingHeight : capsule.standingHeight,
+    radius: capsule.radius,
+  };
+}
 
-export function castSwing(
-  swingWorld: SwingWorld,
-  source: SwingSource,
-  rewound: readonly RewoundPlayer[] = [],
-): SwingHit | undefined {
-  const { rapier, world, colliderTargets } = swingWorld;
-  const standIns: RAPIER.Collider[] = [];
-  const targets = new Map(colliderTargets);
-
-  for (const player of rewound) {
-    const height = player.crouching ? capsule.crouchingHeight : capsule.standingHeight;
-    const collider = world.createCollider(
-      rapier.ColliderDesc.capsule(capsuleHalfHeight(height), capsule.radius)
-        .setTranslation(player.feet.x, player.feet.y + height / 2, player.feet.z)
-        .setCollisionGroups(HITTABLE_GROUPS),
-    );
-    standIns.push(collider);
-    targets.set(collider.handle, { kind: 'player', id: player.id });
-  }
-
-  try {
-    // Register the stand-ins with the broad phase, or the very next query
-    // cannot see them (the same reason `addDrawnCollider` steps).
-    if (standIns.length > 0) world.step();
-
-    // The sphere's own radius is taken off the sweep, so `reach` means the
-    // distance to the furthest surface the blade touches rather than the
-    // distance travelled by its centre.
-    const sweep = Math.max(0, source.reach - COMBAT.arcRadius);
-    const hit = world.castShape(
-      source.origin,
-      IDENTITY_ROTATION,
-      source.direction,
-      new rapier.Ball(COMBAT.arcRadius),
-      0,
-      sweep,
-      true,
-      undefined,
-      SWING_QUERY,
-      source.exclude,
-    );
-    if (!hit) return undefined;
-
-    const target = targets.get(hit.collider.handle);
-    // The room took it. A swing into a wall is a miss, not a hit on nothing:
-    // it still costs stamina, and it still must not reach what is behind it.
-    if (!target) return undefined;
-
-    const point = contactPoint(hit);
-    return {
-      kind: target.kind,
-      id: target.id,
-      distance: Math.hypot(
-        point.x - source.origin.x,
-        point.y - source.origin.y,
-        point.z - source.origin.z,
-      ),
-      point,
-    };
-  } finally {
-    for (const collider of standIns) world.removeCollider(collider, false);
-    if (standIns.length > 0) world.step();
-  }
+/** A standing training dummy as a capsule target. */
+export function dummyTarget(id: number, feet: Vec3): CapsuleTarget {
+  return { kind: 'dummy', id, feet, height: COMBAT.dummy.height, radius: COMBAT.dummy.radius };
 }
 
 /**
- * Where the sphere touched, in world space.
- *
- * Rapier documents `witness1` as a local-space point on the first shape; for
- * a cast through `World.castShape` it arrives already in world space, which
- * a test pins down by casting the same swing from two different places.
+ * The nearest thing the swing reaches, or nothing. One swing, one victim
+ * (plan decision 5): the closest candidate takes the blow and the blade stops
+ * there, which is both readable and the only way durability means anything.
  */
-function contactPoint(hit: RAPIER.ColliderShapeCastHit): Vec3 {
-  return vec3(hit.witness1.x, hit.witness1.y, hit.witness1.z);
+export function castSwing(
+  swingWorld: SwingWorld,
+  source: SwingSource,
+  capsules: readonly CapsuleTarget[] = [],
+): SwingHit | undefined {
+  // The hull's own radius comes off the sweep, so `reach` is the distance to
+  // the furthest surface the blade touches rather than the distance its
+  // centre travels.
+  const sweep = Math.max(0, source.reach - COMBAT.arcRadius);
+
+  let best: SwingHit | undefined;
+  let bestSweep = Number.POSITIVE_INFINITY;
+
+  // The room and what players drew in it. Read-only: `castShape` asks the
+  // world a question and changes nothing about it.
+  const solid = swingWorld.world.castShape(
+    source.origin,
+    IDENTITY_ROTATION,
+    source.direction,
+    new swingWorld.rapier.Ball(COMBAT.arcRadius),
+    0,
+    sweep,
+    true,
+    undefined,
+    SWING_QUERY,
+  );
+  if (solid) {
+    bestSweep = solid.time_of_impact;
+    const structureId = swingWorld.structures.get(solid.collider.handle);
+    best =
+      structureId === undefined
+        ? undefined // the room took it, and it stops the blade going further
+        : {
+            kind: 'structure',
+            id: structureId,
+            distance: distanceFrom(source.origin, solid.witness1),
+            point: vec3(solid.witness1.x, solid.witness1.y, solid.witness1.z),
+          };
+  }
+
+  for (const capsule of capsules) {
+    const a = vec3(capsule.feet.x, capsule.feet.y + capsule.radius, capsule.feet.z);
+    const b = vec3(capsule.feet.x, capsule.feet.y + capsule.height - capsule.radius, capsule.feet.z);
+    const travelled = rayCapsuleDistance(
+      source.origin,
+      source.direction,
+      sweep,
+      a,
+      b,
+      capsule.radius + COMBAT.arcRadius,
+    );
+    // `>=` keeps whatever was found first when two things are the same
+    // distance away: a wall flush against a target shields it.
+    if (travelled === undefined || travelled >= bestSweep) continue;
+    bestSweep = travelled;
+    const point = capsuleContact(source, travelled, a, b, capsule.radius);
+    best = {
+      kind: capsule.kind,
+      id: capsule.id,
+      distance: distanceFrom(source.origin, point),
+      point,
+    };
+  }
+
+  return best;
+}
+
+/** Where the hull touched the capsule: on its surface, facing the blade. */
+function capsuleContact(
+  source: SwingSource,
+  travelled: number,
+  a: Vec3,
+  b: Vec3,
+  radius: number,
+): Vec3 {
+  const hull = vec3(
+    source.origin.x + source.direction.x * travelled,
+    source.origin.y + source.direction.y * travelled,
+    source.origin.z + source.direction.z * travelled,
+  );
+  const axis = closestPointOnSegment(hull, a, b);
+  const dx = hull.x - axis.x;
+  const dy = hull.y - axis.y;
+  const dz = hull.z - axis.z;
+  const length = Math.hypot(dx, dy, dz);
+  if (length === 0) return hull;
+  return vec3(
+    axis.x + (dx / length) * radius,
+    axis.y + (dy / length) * radius,
+    axis.z + (dz / length) * radius,
+  );
+}
+
+function distanceFrom(origin: Vec3, point: RAPIER.Vector | Vec3): number {
+  return Math.hypot(point.x - origin.x, point.y - origin.y, point.z - origin.z);
 }

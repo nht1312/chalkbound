@@ -13,6 +13,7 @@ import {
   type DrawnWeapon,
 } from '../drawing/drawnObject';
 import { spawnDrawnObject } from '../drawing/spawn';
+import { dummyTarget, type CapsuleTarget } from './swingCast';
 import { chalkDebitFor, toDrawingResultOutcome, type DrawingResult } from '../drawing/result';
 import type { Sketch } from '../drawing/types';
 import { validateSketch } from '../drawing/validate';
@@ -21,11 +22,13 @@ import { addDrawnCollider, removeDrawnCollider } from '../physics/drawnColliders
 import { createStaticWorld, type PhysicsWorld, type Rapier } from '../physics/staticWorld';
 import type {
   DrawnObjectState,
+  DummyState,
   EquippedWeaponState,
   InputCommand,
 } from '../protocol/messages';
 import type { ChalkBoxSpawn, LevelData } from '../world/greyboxRoom';
 import { addChalk } from './chalk';
+import { createDummy, damageDummy, isStanding, tickDummy, type Dummy } from './dummy';
 import { applyDamage, FULL_HEALTH, isAlive, tickRespawn, type HealthState } from './health';
 import { withinInteractRange } from './interaction';
 import {
@@ -122,6 +125,12 @@ export class MatchSimulation {
   private readonly structures = new Map<number, DrawnStructure>();
   /** Each structure's collider, so it can be taken back out again. */
   private readonly structureColliders = new Map<number, RAPIER.Collider>();
+  /**
+   * The training dummies of the slice. They have no colliders: a swing finds
+   * them by arithmetic (see `castSwing`), and nothing else in the game needs
+   * to know they are there.
+   */
+  private readonly dummies = new Map<number, Dummy>();
   private nextObjectId = 1;
 
   /**
@@ -141,6 +150,7 @@ export class MatchSimulation {
     for (const spawn of level.chalkBoxes) {
       this.chalkBoxes.set(spawn.id, { spawn, remaining: spawn.amount ?? ECONOMY.chalk.perBox });
     }
+    for (const spawn of level.dummies) this.dummies.set(spawn.id, createDummy(spawn));
   }
 
   get tick(): number {
@@ -262,6 +272,45 @@ export class MatchSimulation {
     if (isAlive(player.health)) return 'damaged';
     player.equipped = undefined;
     return 'killed';
+  }
+
+  /** Every training dummy, as the wire carries it. */
+  dummyStates(): DummyState[] {
+    return [...this.dummies.values()].map((dummy) => ({
+      id: dummy.id,
+      position: dummy.position,
+      health: dummy.health,
+      standing: isStanding(dummy),
+    }));
+  }
+
+  /**
+   * Damages a training dummy, felling it when its health runs out.
+   *
+   * Like every other damage entry point here it takes no attacker: a blow
+   * does what it does, whoever swung it.
+   */
+  damageDummy(id: number, amount: number): 'damaged' | 'felled' | 'already-down' | 'missing' {
+    const dummy = this.dummies.get(id);
+    if (!dummy) return 'missing';
+    return damageDummy(dummy, amount);
+  }
+
+  /**
+   * Drawn structures by collider handle, so a swing can tell a wall somebody
+   * built from the wall the room came with.
+   */
+  structuresByCollider(): ReadonlyMap<number, number> {
+    const byHandle = new Map<number, number>();
+    for (const [id, collider] of this.structureColliders) byHandle.set(collider.handle, id);
+    return byHandle;
+  }
+
+  /** The standing dummies, as capsules a swing can be tested against. */
+  dummyTargets(): CapsuleTarget[] {
+    return [...this.dummies.values()]
+      .filter((dummy) => isStanding(dummy))
+      .map((dummy) => dummyTarget(dummy.id, dummy.position));
   }
 
   /** What `id` is holding, if anything. */
@@ -414,6 +463,7 @@ export class MatchSimulation {
 
   step(): void {
     this.currentTick++;
+    for (const dummy of this.dummies.values()) tickDummy(dummy, FIXED_DT);
     for (const player of this.players.values()) {
       const alive = isAlive(player.health);
       if (!alive) {

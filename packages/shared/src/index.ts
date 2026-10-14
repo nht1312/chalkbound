@@ -27,6 +27,7 @@ export {
   type InputCommand,
   type ChalkBoxState,
   type DrawnObjectState,
+  type DummyState,
   type EquippedWeaponState,
   type ClientMessage,
   type ServerMessage,
@@ -103,13 +104,23 @@ export {
 } from './sim/transformHistory';
 export {
   castSwing,
-  type RewoundPlayer,
+  dummyTarget,
+  playerTarget,
+  type CapsuleTarget,
   type SwingHit,
   type SwingSource,
   type SwingTarget,
   type SwingTargetKind,
   type SwingWorld,
 } from './sim/swingCast';
+export {
+  createDummy,
+  damageDummy,
+  isStanding,
+  tickDummy,
+  type Dummy,
+  type DummyTick,
+} from './sim/dummy';
 export { addChalk } from './sim/chalk';
 export { applyDrawMode, isDrawing } from './sim/drawMode';
 export {
@@ -126,6 +137,7 @@ export {
   CHALK_BOX_SIZE,
   createGreyboxRoom,
   type ChalkBoxSpawn,
+  type DummySpawn,
   type LevelData,
   type StaticBox,
   type SurfaceKind,

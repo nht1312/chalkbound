@@ -21,11 +21,25 @@ export interface ChalkBoxSpawn {
   readonly amount?: number;
 }
 
+/**
+ * An authored training dummy: something to swing at (ROADMAP Phase 5). It is
+ * a capsule with health and nothing else — no behaviour, no opinions. The
+ * Erased arrive in Phase 7 and will not inherit from this.
+ */
+export interface DummySpawn {
+  /** Stable id, sent on the wire as a u16. */
+  readonly id: number;
+  /** Feet position. */
+  readonly position: Vec3;
+}
+
 export interface LevelData {
   readonly boxes: readonly StaticBox[];
   /** Player feet position at spawn. */
   readonly spawn: Vec3;
   readonly chalkBoxes: readonly ChalkBoxSpawn[];
+  /** Training dummies. Empty in every level that has nothing to practise on. */
+  readonly dummies: readonly DummySpawn[];
 }
 
 /** Visual size of a chalk box, m (greybox). */
@@ -159,6 +173,11 @@ export function createGreyboxRoom(): LevelData {
     { id: 3, position: vec3(1, onFloor, FLOOR_GAP.toZ + 0.4) },
   ];
 
+  // A dummy to swing at, in the clear lane west of the desks — reachable
+  // without crossing the trench, since practising should not require a
+  // bridge (ROADMAP Phase 5).
+  const dummies: DummySpawn[] = [{ id: 1, position: vec3(-halfW + 1, 0, 1) }];
+
   // Spawn in the aisle between the first two desk columns, facing the blackboard (-Z).
-  return { boxes, spawn: vec3(DESK.spacingX / 2, 0, halfD - 1), chalkBoxes };
+  return { boxes, spawn: vec3(DESK.spacingX / 2, 0, halfD - 1), chalkBoxes, dummies };
 }

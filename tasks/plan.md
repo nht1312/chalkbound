@@ -153,7 +153,27 @@ Continuing Phase 4's D-15…D-19; these would be recorded as **D-20 … D-27**.
   *Depends on:* T1, T3. *Files:* `shared/sim/swingCast.ts` (+ test),
   `shared/physics/collisionGroups.ts`. *Scope:* L. **The riskiest task.**
 
-- [ ] **T5 — A training dummy in the greybox room.**
+- [x] **T5 — A training dummy in the greybox room.**
+  **Landed, and it found the phase's worst bug.** The dummy was first given a
+  collider, as anything standing in a room would be. The prediction suite went
+  red within minutes: the authority's walk and the client's parted company by
+  half a millimetre at tick 103. Filtering the dummy out of movement queries
+  did not fix it, and a probe found why — it is **`world.step()` itself**, not
+  the collider, that shifts the character controller's next result, because
+  stepping re-syncs the player's own collider into the broad phase. The client
+  never steps for a dummy it does not have.
+  That condemned T4's design too: it posed a stand-in collider per rewound
+  target and stepped the world to register it, on the authority only. It would
+  have desynced every client within seconds of the first swing, and nothing in
+  Phase 5's own tests would have caught it — it takes a thousand ticks of
+  walking to show.
+  **The hit test now never mutates the world.** Structures and level geometry
+  are found with a read-only `castShape`; players and dummies are tested in
+  arithmetic (`math/sweep`, ray against capsule, with its own suite). The
+  dummy has no collider at all, which also makes it walk-through-able — a
+  training target, not an obstacle. A test now asserts the authority's walk is
+  **bit-identical** with and without a dummy in the room. Decisions to record
+  as D-20 (no mutation in hit tests) and D-21 (the dummy is not solid).
   A static, hittable thing with health, authored into the level and owned by
   the simulation. It falls at zero health and stands back up (decision 7).
   *Accept:* the dummy has a collider a swing can find, takes authoritative
