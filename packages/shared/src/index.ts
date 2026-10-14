@@ -8,6 +8,7 @@ export { INVENTORY } from './config/inventory';
 export { INTERACTION } from './config/interaction';
 export { DRAWING } from './config/drawing';
 export { CREATION } from './config/creation';
+export { COMBAT } from './config/combat';
 
 export {
   advanceFixedTimestep,
@@ -74,6 +75,17 @@ export {
   type StaminaState,
   type StaminaUse,
 } from './sim/stamina';
+export {
+  advanceSwing,
+  canStartSwing,
+  IDLE_SWING,
+  startSwing,
+  SWING_SECONDS,
+  swingProgress,
+  type SwingAdvance,
+  type SwingPhase,
+  type SwingState,
+} from './sim/swingState';
 export { addChalk } from './sim/chalk';
 export { applyDrawMode, isDrawing } from './sim/drawMode';
 export {
