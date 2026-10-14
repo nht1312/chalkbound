@@ -94,6 +94,13 @@ export {
   type HealthState,
   type RespawnTick,
 } from './sim/health';
+export {
+  HISTORY_TICKS,
+  MAX_REWIND_TICKS,
+  rewindTick,
+  TransformHistory,
+  type RecordedTransform,
+} from './sim/transformHistory';
 export { addChalk } from './sim/chalk';
 export { applyDrawMode, isDrawing } from './sim/drawMode';
 export {

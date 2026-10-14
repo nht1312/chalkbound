@@ -131,7 +131,7 @@ Continuing Phase 4's D-15…D-19; these would be recorded as **D-20 … D-27**.
   *Depends on:* T1 (config only). *Files:* `shared/sim/health.ts` (+ test),
   `shared/sim/MatchSimulation.ts` (+ test). *Scope:* M.
 
-- [ ] **T3 — The transform history ring buffer and bounded rewind (shared).**
+- [x] **T3 — The transform history ring buffer and bounded rewind (shared).**
   One second of every player's capsule transform, per tick, with a lookup that
   clamps to the buffer and to `maxRewindMs` (decision 4). Pure data, tested
   against synthetic histories as the roadmap asks.
