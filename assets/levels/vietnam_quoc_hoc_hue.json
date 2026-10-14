@@ -1,0 +1,544 @@
+{
+  "mapId": "vietnam_quoc_hoc_hue",
+  "name": "Trường THPT Chuyên Quốc Học Huế",
+  "location": "Huế, Thừa Thiên Huế, Việt Nam (Bờ Sông Hương)",
+  "yearFounded": 1896,
+  "description": "Ngôi trường cổ kính rực rỡ sắc đỏ hoàng gia bên dòng sông Hương thơ mộng, với các dãy hành lang gạch vòm thuộc địa, sân trường rợp bóng cây cổ thụ và điểm rút lui tại bến thuyền sông Hương.",
+  "spawn": [
+    0,
+    0.1,
+    20
+  ],
+  "extractionZones": [
+    {
+      "id": "extract-song-huong",
+      "center": [
+        0,
+        0,
+        -29
+      ],
+      "radius": 3.5,
+      "label": "Bến Thuyền Sông Hương"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "hue-courtyard-ground",
+      "kind": "floor",
+      "center": [
+        0,
+        -0.1,
+        0
+      ],
+      "halfExtents": [
+        30,
+        0.1,
+        24
+      ]
+    },
+    {
+      "id": "hue-gate-pillar-left",
+      "kind": "wall",
+      "center": [
+        -4,
+        2.5,
+        23.5
+      ],
+      "halfExtents": [
+        0.6,
+        2.5,
+        0.6
+      ]
+    },
+    {
+      "id": "hue-gate-pillar-mid-l",
+      "kind": "wall",
+      "center": [
+        -1.5,
+        3,
+        23.5
+      ],
+      "halfExtents": [
+        0.6,
+        3,
+        0.6
+      ]
+    },
+    {
+      "id": "hue-gate-pillar-mid-r",
+      "kind": "wall",
+      "center": [
+        1.5,
+        3,
+        23.5
+      ],
+      "halfExtents": [
+        0.6,
+        3,
+        0.6
+      ]
+    },
+    {
+      "id": "hue-gate-pillar-right",
+      "kind": "wall",
+      "center": [
+        4,
+        2.5,
+        23.5
+      ],
+      "halfExtents": [
+        0.6,
+        2.5,
+        0.6
+      ]
+    },
+    {
+      "id": "hue-gate-arch-roof",
+      "kind": "wall",
+      "center": [
+        0,
+        5.2,
+        23.5
+      ],
+      "halfExtents": [
+        5,
+        0.4,
+        1.2
+      ]
+    },
+    {
+      "id": "hue-wall-south-left",
+      "kind": "wall",
+      "center": [
+        -17,
+        1.75,
+        23.5
+      ],
+      "halfExtents": [
+        12,
+        1.75,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-wall-south-right",
+      "kind": "wall",
+      "center": [
+        17,
+        1.75,
+        23.5
+      ],
+      "halfExtents": [
+        12,
+        1.75,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-wall-north-left",
+      "kind": "wall",
+      "center": [
+        -18,
+        1.75,
+        -23.5
+      ],
+      "halfExtents": [
+        11,
+        1.75,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-wall-north-right",
+      "kind": "wall",
+      "center": [
+        18,
+        1.75,
+        -23.5
+      ],
+      "halfExtents": [
+        11,
+        1.75,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-extraction-pier",
+      "kind": "floor",
+      "center": [
+        0,
+        -0.1,
+        -29
+      ],
+      "halfExtents": [
+        3,
+        0.15,
+        6
+      ]
+    },
+    {
+      "id": "hue-west-wing-floor",
+      "kind": "floor",
+      "center": [
+        -22,
+        -0.05,
+        0
+      ],
+      "halfExtents": [
+        7,
+        0.1,
+        20
+      ]
+    },
+    {
+      "id": "hue-west-wing-wall-outer",
+      "kind": "wall",
+      "center": [
+        -28.8,
+        3.5,
+        0
+      ],
+      "halfExtents": [
+        0.25,
+        3.5,
+        20
+      ]
+    },
+    {
+      "id": "hue-west-wing-wall-inner",
+      "kind": "wall",
+      "center": [
+        -15.2,
+        3.5,
+        0
+      ],
+      "halfExtents": [
+        0.25,
+        3.5,
+        20
+      ]
+    },
+    {
+      "id": "hue-west-wing-wall-north",
+      "kind": "wall",
+      "center": [
+        -22,
+        3.5,
+        -19.8
+      ],
+      "halfExtents": [
+        7,
+        3.5,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-west-wing-wall-south",
+      "kind": "wall",
+      "center": [
+        -22,
+        3.5,
+        19.8
+      ],
+      "halfExtents": [
+        7,
+        3.5,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-west-room-div-1",
+      "kind": "wall",
+      "center": [
+        -22,
+        3.5,
+        -6
+      ],
+      "halfExtents": [
+        6.6,
+        3.5,
+        0.2
+      ]
+    },
+    {
+      "id": "hue-west-room-div-2",
+      "kind": "wall",
+      "center": [
+        -22,
+        3.5,
+        6
+      ],
+      "halfExtents": [
+        6.6,
+        3.5,
+        0.2
+      ]
+    },
+    {
+      "id": "hue-west-blackboard-1",
+      "kind": "blackboard",
+      "center": [
+        -22,
+        1.8,
+        -19.5
+      ],
+      "halfExtents": [
+        2.2,
+        0.7,
+        0.05
+      ]
+    },
+    {
+      "id": "hue-west-blackboard-2",
+      "kind": "blackboard",
+      "center": [
+        -22,
+        1.8,
+        -5.7
+      ],
+      "halfExtents": [
+        2.2,
+        0.7,
+        0.05
+      ]
+    },
+    {
+      "id": "hue-west-desk-row-1",
+      "kind": "desk",
+      "center": [
+        -22,
+        0.45,
+        -12
+      ],
+      "halfExtents": [
+        2.5,
+        0.45,
+        0.8
+      ]
+    },
+    {
+      "id": "hue-west-desk-row-2",
+      "kind": "desk",
+      "center": [
+        -22,
+        0.45,
+        0
+      ],
+      "halfExtents": [
+        2.5,
+        0.45,
+        0.8
+      ]
+    },
+    {
+      "id": "hue-east-wing-floor",
+      "kind": "floor",
+      "center": [
+        22,
+        -0.05,
+        0
+      ],
+      "halfExtents": [
+        7,
+        0.1,
+        20
+      ]
+    },
+    {
+      "id": "hue-east-wing-wall-outer",
+      "kind": "wall",
+      "center": [
+        28.8,
+        3.5,
+        0
+      ],
+      "halfExtents": [
+        0.25,
+        3.5,
+        20
+      ]
+    },
+    {
+      "id": "hue-east-wing-wall-inner",
+      "kind": "wall",
+      "center": [
+        15.2,
+        3.5,
+        0
+      ],
+      "halfExtents": [
+        0.25,
+        3.5,
+        20
+      ]
+    },
+    {
+      "id": "hue-east-wing-wall-north",
+      "kind": "wall",
+      "center": [
+        22,
+        3.5,
+        -19.8
+      ],
+      "halfExtents": [
+        7,
+        3.5,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-east-wing-wall-south",
+      "kind": "wall",
+      "center": [
+        22,
+        3.5,
+        19.8
+      ],
+      "halfExtents": [
+        7,
+        3.5,
+        0.25
+      ]
+    },
+    {
+      "id": "hue-east-room-div-1",
+      "kind": "wall",
+      "center": [
+        22,
+        3.5,
+        0
+      ],
+      "halfExtents": [
+        6.6,
+        3.5,
+        0.2
+      ]
+    },
+    {
+      "id": "hue-east-lab-bench-1",
+      "kind": "desk",
+      "center": [
+        22,
+        0.5,
+        -8
+      ],
+      "halfExtents": [
+        3,
+        0.5,
+        1
+      ]
+    },
+    {
+      "id": "hue-east-lab-bench-2",
+      "kind": "desk",
+      "center": [
+        22,
+        0.5,
+        8
+      ],
+      "halfExtents": [
+        3,
+        0.5,
+        1
+      ]
+    },
+    {
+      "id": "hue-east-blackboard",
+      "kind": "blackboard",
+      "center": [
+        22,
+        1.8,
+        19.5
+      ],
+      "halfExtents": [
+        2.2,
+        0.7,
+        0.05
+      ]
+    },
+    {
+      "id": "hue-courtyard-banyan-left",
+      "kind": "wall",
+      "center": [
+        -7,
+        1.2,
+        5
+      ],
+      "halfExtents": [
+        1.5,
+        1.2,
+        1.5
+      ]
+    },
+    {
+      "id": "hue-courtyard-banyan-right",
+      "kind": "wall",
+      "center": [
+        7,
+        1.2,
+        5
+      ],
+      "halfExtents": [
+        1.5,
+        1.2,
+        1.5
+      ]
+    }
+  ],
+  "chalkBoxes": [
+    {
+      "id": 101,
+      "position": [
+        -22,
+        0.85,
+        -12
+      ],
+      "amount": 25
+    },
+    {
+      "id": 102,
+      "position": [
+        -22,
+        0.85,
+        0
+      ],
+      "amount": 25
+    },
+    {
+      "id": 103,
+      "position": [
+        22,
+        0.9,
+        -8
+      ],
+      "amount": 30
+    },
+    {
+      "id": 104,
+      "position": [
+        22,
+        0.9,
+        8
+      ],
+      "amount": 30
+    },
+    {
+      "id": 105,
+      "position": [
+        0,
+        0.2,
+        8
+      ],
+      "amount": 20
+    },
+    {
+      "id": 106,
+      "position": [
+        0,
+        0.2,
+        -26
+      ],
+      "amount": 35
+    }
+  ]
+}

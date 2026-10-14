@@ -1,0 +1,47 @@
+{
+  "id": "CB_ENV_VN_Window_Louver_A",
+  "category": "ENV",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "French colonial green wooden louvered shutter window with stone frame (Cửa lá sách xanh).",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.035Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 84,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      2.2,
+      2.4,
+      0.42
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      2,
+      2.4,
+      0.25
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

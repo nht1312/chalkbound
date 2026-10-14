@@ -1,0 +1,47 @@
+{
+  "id": "CB_PROP_VN_Blackboard_A",
+  "category": "PROP",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Anti-glare green grid chalkboard (Bảng chống lóa ô ly) with wooden frame and chalk tray.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.058Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 148,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      3.72,
+      1.34,
+      0.13
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      3.7,
+      1.3,
+      0.15
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

@@ -1,0 +1,404 @@
+{
+  "mapId": "vietnam_da_lat_lycee",
+  "name": "Trường Lycée Yersin Đà Lạt (CĐ Sư Phạm Đà Lạt)",
+  "location": "Đà Lạt, Lâm Đồng, Tây Nguyên, Việt Nam",
+  "yearFounded": 1927,
+  "description": "Kiến trúc đỉnh cao trên cao nguyên sương mù với dãy nhà hình vòng cung gạch ép đỏ mềm mại, tháp chuông vươn cao giữa ngút ngàn thông reo và điểm rút lui trên đỉnh sườn đồi.",
+  "spawn": [
+    0,
+    0.1,
+    8
+  ],
+  "extractionZones": [
+    {
+      "id": "extract-doi-thong",
+      "center": [
+        0,
+        1.2,
+        24
+      ],
+      "radius": 4,
+      "label": "Đỉnh Đồi Thông Sương Mù"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "dalat-ground",
+      "kind": "floor",
+      "center": [
+        0,
+        -0.1,
+        0
+      ],
+      "halfExtents": [
+        25,
+        0.1,
+        25
+      ]
+    },
+    {
+      "id": "dalat-belltower-base",
+      "kind": "wall",
+      "center": [
+        -18,
+        5,
+        -8
+      ],
+      "halfExtents": [
+        2.2,
+        5,
+        2.2
+      ]
+    },
+    {
+      "id": "dalat-belltower-spire",
+      "kind": "wall",
+      "center": [
+        -18,
+        11.5,
+        -8
+      ],
+      "halfExtents": [
+        1.4,
+        2.5,
+        1.4
+      ]
+    },
+    {
+      "id": "dalat-arc-wing-0",
+      "kind": "wall",
+      "center": [
+        -12,
+        3.5,
+        -8
+      ],
+      "halfExtents": [
+        3.2,
+        3.5,
+        2.2
+      ]
+    },
+    {
+      "id": "dalat-arc-floor-0",
+      "kind": "floor",
+      "center": [
+        -12,
+        0.05,
+        -4.5
+      ],
+      "halfExtents": [
+        3,
+        0.1,
+        2
+      ]
+    },
+    {
+      "id": "dalat-arc-wing-1",
+      "kind": "wall",
+      "center": [
+        -6,
+        3.5,
+        -5
+      ],
+      "halfExtents": [
+        3.2,
+        3.5,
+        2.2
+      ]
+    },
+    {
+      "id": "dalat-arc-floor-1",
+      "kind": "floor",
+      "center": [
+        -6,
+        0.05,
+        -1.5
+      ],
+      "halfExtents": [
+        3,
+        0.1,
+        2
+      ]
+    },
+    {
+      "id": "dalat-arc-wing-2",
+      "kind": "wall",
+      "center": [
+        0,
+        3.5,
+        -3.5
+      ],
+      "halfExtents": [
+        3.2,
+        3.5,
+        2.2
+      ]
+    },
+    {
+      "id": "dalat-arc-floor-2",
+      "kind": "floor",
+      "center": [
+        0,
+        0.05,
+        0
+      ],
+      "halfExtents": [
+        3,
+        0.1,
+        2
+      ]
+    },
+    {
+      "id": "dalat-arc-wing-3",
+      "kind": "wall",
+      "center": [
+        6,
+        3.5,
+        -5
+      ],
+      "halfExtents": [
+        3.2,
+        3.5,
+        2.2
+      ]
+    },
+    {
+      "id": "dalat-arc-floor-3",
+      "kind": "floor",
+      "center": [
+        6,
+        0.05,
+        -1.5
+      ],
+      "halfExtents": [
+        3,
+        0.1,
+        2
+      ]
+    },
+    {
+      "id": "dalat-arc-wing-4",
+      "kind": "wall",
+      "center": [
+        12,
+        3.5,
+        -8
+      ],
+      "halfExtents": [
+        3.2,
+        3.5,
+        2.2
+      ]
+    },
+    {
+      "id": "dalat-arc-floor-4",
+      "kind": "floor",
+      "center": [
+        12,
+        0.05,
+        -4.5
+      ],
+      "halfExtents": [
+        3,
+        0.1,
+        2
+      ]
+    },
+    {
+      "id": "dalat-blackboard-center",
+      "kind": "blackboard",
+      "center": [
+        0,
+        1.8,
+        -1.2
+      ],
+      "halfExtents": [
+        2.8,
+        0.8,
+        0.05
+      ]
+    },
+    {
+      "id": "dalat-studio-desk-1",
+      "kind": "desk",
+      "center": [
+        -5,
+        0.45,
+        0
+      ],
+      "halfExtents": [
+        2.2,
+        0.45,
+        0.9
+      ]
+    },
+    {
+      "id": "dalat-studio-desk-2",
+      "kind": "desk",
+      "center": [
+        5,
+        0.45,
+        0
+      ],
+      "halfExtents": [
+        2.2,
+        0.45,
+        0.9
+      ]
+    },
+    {
+      "id": "dalat-terrace-1",
+      "kind": "floor",
+      "center": [
+        0,
+        0.3,
+        14
+      ],
+      "halfExtents": [
+        16,
+        0.15,
+        2.5
+      ]
+    },
+    {
+      "id": "dalat-terrace-2",
+      "kind": "floor",
+      "center": [
+        0,
+        0.6,
+        17
+      ],
+      "halfExtents": [
+        16,
+        0.15,
+        2.5
+      ]
+    },
+    {
+      "id": "dalat-terrace-3",
+      "kind": "floor",
+      "center": [
+        0,
+        0.9,
+        20
+      ],
+      "halfExtents": [
+        16,
+        0.15,
+        2.5
+      ]
+    },
+    {
+      "id": "dalat-pine-tree-1",
+      "kind": "wall",
+      "center": [
+        -15,
+        2.5,
+        10
+      ],
+      "halfExtents": [
+        0.8,
+        2.5,
+        0.8
+      ]
+    },
+    {
+      "id": "dalat-pine-tree-2",
+      "kind": "wall",
+      "center": [
+        15,
+        2.5,
+        10
+      ],
+      "halfExtents": [
+        0.8,
+        2.5,
+        0.8
+      ]
+    },
+    {
+      "id": "dalat-pine-tree-3",
+      "kind": "wall",
+      "center": [
+        -16,
+        2.5,
+        18
+      ],
+      "halfExtents": [
+        0.8,
+        2.5,
+        0.8
+      ]
+    },
+    {
+      "id": "dalat-extraction-ridge",
+      "kind": "floor",
+      "center": [
+        0,
+        1.2,
+        24
+      ],
+      "halfExtents": [
+        4,
+        0.2,
+        3.5
+      ]
+    }
+  ],
+  "chalkBoxes": [
+    {
+      "id": 301,
+      "position": [
+        -18,
+        0.3,
+        -5
+      ],
+      "amount": 35
+    },
+    {
+      "id": 302,
+      "position": [
+        0,
+        0.3,
+        0
+      ],
+      "amount": 25
+    },
+    {
+      "id": 303,
+      "position": [
+        -5,
+        0.9,
+        0
+      ],
+      "amount": 25
+    },
+    {
+      "id": 304,
+      "position": [
+        5,
+        0.9,
+        0
+      ],
+      "amount": 25
+    },
+    {
+      "id": 305,
+      "position": [
+        0,
+        0.7,
+        17
+      ],
+      "amount": 20
+    },
+    {
+      "id": 306,
+      "position": [
+        0,
+        1.4,
+        24
+      ],
+      "amount": 45
+    }
+  ]
+}

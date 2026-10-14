@@ -1,0 +1,43 @@
+{
+  "id": "CB_CHAR_Hands_A",
+  "category": "CHAR",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "First-person viewmodel hands holding chalk stick, ready to draw weapons in air.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.017Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 80,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.56,
+      0.14,
+      0.55
+    ]
+  },
+  "collision": {
+    "type": "none"
+  },
+  "materials": [
+    "CB_MAT_ViewmodelSkin",
+    "CB_MAT_Chalk"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

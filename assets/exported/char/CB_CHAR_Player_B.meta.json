@@ -1,0 +1,48 @@
+{
+  "id": "CB_CHAR_Player_B",
+  "category": "CHAR",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Vietnamese female student explorer (\"Linh\") with school attire, ponytail, and crossbody chalk kit.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.003Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 236,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.51,
+      1.76,
+      0.66
+    ]
+  },
+  "collision": {
+    "type": "capsule",
+    "radius": 0.3,
+    "height": 1.75
+  },
+  "materials": [
+    "CB_MAT_StudentUniform",
+    "CB_MAT_Skin",
+    "CB_MAT_Chalk"
+  ],
+  "vietnamContext": {
+    "role": "Student Explorer"
+  },
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "CB_CHAR_Player_A",
+  "category": "CHAR",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Vietnamese male high school student survivor (\"Minh\") in classic white uniform, red student scarf, canvas satchel and chalk holster.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:42.996Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 388,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.58,
+      1.79,
+      0.73
+    ]
+  },
+  "collision": {
+    "type": "capsule",
+    "radius": 0.3,
+    "height": 1.8
+  },
+  "materials": [
+    "CB_MAT_StudentUniform",
+    "CB_MAT_Skin",
+    "CB_MAT_Chalk"
+  ],
+  "vietnamContext": {
+    "school": "Chu Văn An / Quốc Học",
+    "role": "Student Survivor"
+  },
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

@@ -1,0 +1,450 @@
+{
+  "generatedAt": "2026-10-14T11:20:43.126Z",
+  "version": "1.0.0",
+  "totalAssets": 18,
+  "totalLevels": 3,
+  "assets": [
+    {
+      "id": "CB_CHAR_Player_A",
+      "category": "CHAR",
+      "path": "assets/exported/char/CB_CHAR_Player_A.glb",
+      "metaPath": "assets/exported/char/CB_CHAR_Player_A.meta.json",
+      "byteSize": 52800,
+      "triangles": 388,
+      "bounds": [
+        0.58,
+        1.79,
+        0.73
+      ],
+      "description": "Vietnamese male high school student survivor (\"Minh\") in classic white uniform, red student scarf, canvas satchel and chalk holster.",
+      "tags": [
+        "player",
+        "character",
+        "survivor",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_CHAR_Player_B",
+      "category": "CHAR",
+      "path": "assets/exported/char/CB_CHAR_Player_B.glb",
+      "metaPath": "assets/exported/char/CB_CHAR_Player_B.meta.json",
+      "byteSize": 31828,
+      "triangles": 236,
+      "bounds": [
+        0.51,
+        1.76,
+        0.66
+      ],
+      "description": "Vietnamese female student explorer (\"Linh\") with school attire, ponytail, and crossbody chalk kit.",
+      "tags": [
+        "player",
+        "character",
+        "explorer",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_PVE_ErasedSword_A",
+      "category": "PVE",
+      "path": "assets/exported/pve/CB_PVE_ErasedSword_A.glb",
+      "metaPath": "assets/exported/pve/CB_PVE_ErasedSword_A.meta.json",
+      "byteSize": 26360,
+      "triangles": 160,
+      "bounds": [
+        0.77,
+        1.87,
+        0.52
+      ],
+      "description": "The Erased (\"Kẻ Bị Xóa\"): Corrupted blackboard entity with glowing chalk runes and a razor-sharp erased chalk blade arm.",
+      "tags": [
+        "enemy",
+        "pve",
+        "erased",
+        "monster"
+      ]
+    },
+    {
+      "id": "CB_PVE_ErasedStalker_A",
+      "category": "PVE",
+      "path": "assets/exported/pve/CB_PVE_ErasedStalker_A.glb",
+      "metaPath": "assets/exported/pve/CB_PVE_ErasedStalker_A.meta.json",
+      "byteSize": 16276,
+      "triangles": 128,
+      "bounds": [
+        0.84,
+        2.02,
+        1.02
+      ],
+      "description": "The Hall Monitor (\"Giám Thị\"): Tall shadowy disciplinary specter with piercing red chalk spectacles and heavy ruler.",
+      "tags": [
+        "enemy",
+        "pve",
+        "stalker",
+        "boss"
+      ]
+    },
+    {
+      "id": "CB_CHAR_Hands_A",
+      "category": "CHAR",
+      "path": "assets/exported/char/CB_CHAR_Hands_A.glb",
+      "metaPath": "assets/exported/char/CB_CHAR_Hands_A.meta.json",
+      "byteSize": 10904,
+      "triangles": 80,
+      "bounds": [
+        0.56,
+        0.14,
+        0.55
+      ],
+      "description": "First-person viewmodel hands holding chalk stick, ready to draw weapons in air.",
+      "tags": [
+        "viewmodel",
+        "hands",
+        "fpp"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Wall_YellowStucco_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Wall_YellowStucco_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Wall_YellowStucco_A.meta.json",
+      "byteSize": 5952,
+      "triangles": 36,
+      "bounds": [
+        4,
+        3,
+        0.26
+      ],
+      "description": "Indochinese French colonial yellow ochre plaster wall (4m x 3m x 0.2m) with plinth and crown molding.",
+      "tags": [
+        "env",
+        "wall",
+        "colonial",
+        "yellow_stucco",
+        "hanoi",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Wall_RedBrick_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Wall_RedBrick_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Wall_RedBrick_A.meta.json",
+      "byteSize": 11344,
+      "triangles": 72,
+      "bounds": [
+        4.1,
+        3,
+        0.36
+      ],
+      "description": "Imperial Hue and Dalat style colonial red brick arch wall (4m x 3m x 0.3m).",
+      "tags": [
+        "env",
+        "wall",
+        "red_brick",
+        "arch",
+        "hue",
+        "dalat",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Floor_Tile_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Floor_Tile_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Floor_Tile_A.meta.json",
+      "byteSize": 6992,
+      "triangles": 56,
+      "bounds": [
+        4,
+        0.17,
+        4
+      ],
+      "description": "Indochinese encaustic cement tile floor (4m x 4m) with decorative geometric motifs.",
+      "tags": [
+        "env",
+        "floor",
+        "tile",
+        "gach_bong",
+        "indochine",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Floor_Wood_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Floor_Wood_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Floor_Wood_A.meta.json",
+      "byteSize": 16304,
+      "triangles": 108,
+      "bounds": [
+        4,
+        0.16,
+        4
+      ],
+      "description": "Aged dark teak plank hardwood floor (4m x 4m).",
+      "tags": [
+        "env",
+        "floor",
+        "wood",
+        "teak",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Window_Louver_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Window_Louver_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Window_Louver_A.meta.json",
+      "byteSize": 13048,
+      "triangles": 84,
+      "bounds": [
+        2.2,
+        2.4,
+        0.42
+      ],
+      "description": "French colonial green wooden louvered shutter window with stone frame (Cửa lá sách xanh).",
+      "tags": [
+        "env",
+        "window",
+        "louver",
+        "green_shutter",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Door_Colonial_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Door_Colonial_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Door_Colonial_A.meta.json",
+      "byteSize": 15092,
+      "triangles": 124,
+      "bounds": [
+        2.15,
+        2.8,
+        0.25
+      ],
+      "description": "Double arched colonial teak doors with brass fixtures.",
+      "tags": [
+        "env",
+        "door",
+        "colonial",
+        "wood",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_ENV_VN_Gate_TamQuan_A",
+      "category": "ENV",
+      "path": "assets/exported/env/CB_ENV_VN_Gate_TamQuan_A.glb",
+      "metaPath": "assets/exported/env/CB_ENV_VN_Gate_TamQuan_A.meta.json",
+      "byteSize": 16528,
+      "triangles": 108,
+      "bounds": [
+        6.2,
+        4.92,
+        1.4
+      ],
+      "description": "Traditional Vietnamese ceremonial gate (Cổng Tam Quan Quốc Học Huế) with imperial red pillars and terracotta roof eaves.",
+      "tags": [
+        "env",
+        "gate",
+        "tam_quan",
+        "imperial",
+        "hue",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_PROP_VN_Desk_A",
+      "category": "PROP",
+      "path": "assets/exported/prop/CB_PROP_VN_Desk_A.glb",
+      "metaPath": "assets/exported/prop/CB_PROP_VN_Desk_A.meta.json",
+      "byteSize": 11192,
+      "triangles": 72,
+      "bounds": [
+        1.2,
+        0.76,
+        0.88
+      ],
+      "description": "Authentic wooden double school desk with attached bench, pencil groove, and book compartment.",
+      "tags": [
+        "prop",
+        "desk",
+        "classroom",
+        "school",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_PROP_VN_Blackboard_A",
+      "category": "PROP",
+      "path": "assets/exported/prop/CB_PROP_VN_Blackboard_A.glb",
+      "metaPath": "assets/exported/prop/CB_PROP_VN_Blackboard_A.meta.json",
+      "byteSize": 19152,
+      "triangles": 148,
+      "bounds": [
+        3.72,
+        1.34,
+        0.13
+      ],
+      "description": "Anti-glare green grid chalkboard (Bảng chống lóa ô ly) with wooden frame and chalk tray.",
+      "tags": [
+        "prop",
+        "blackboard",
+        "chalkboard",
+        "school",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_PROP_VN_CeilingFan_A",
+      "category": "PROP",
+      "path": "assets/exported/prop/CB_PROP_VN_CeilingFan_A.glb",
+      "metaPath": "assets/exported/prop/CB_PROP_VN_CeilingFan_A.meta.json",
+      "byteSize": 12936,
+      "triangles": 116,
+      "bounds": [
+        1.28,
+        0.73,
+        1.11
+      ],
+      "description": "Classic green 3-blade electric ceiling fan (Quạt trần Vinawind).",
+      "tags": [
+        "prop",
+        "fan",
+        "ceiling",
+        "vinawind",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_PROP_VN_Drum_A",
+      "category": "PROP",
+      "path": "assets/exported/prop/CB_PROP_VN_Drum_A.glb",
+      "metaPath": "assets/exported/prop/CB_PROP_VN_Drum_A.meta.json",
+      "byteSize": 24996,
+      "triangles": 272,
+      "bounds": [
+        0.91,
+        1.59,
+        0.98
+      ],
+      "description": "Traditional red lacquer school drum (Trống trường) on ornamental wooden cradle stand.",
+      "tags": [
+        "prop",
+        "drum",
+        "trong_truong",
+        "traditional",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_PROP_VN_BonsaiPot_A",
+      "category": "PROP",
+      "path": "assets/exported/prop/CB_PROP_VN_BonsaiPot_A.glb",
+      "metaPath": "assets/exported/prop/CB_PROP_VN_BonsaiPot_A.meta.json",
+      "byteSize": 12984,
+      "triangles": 216,
+      "bounds": [
+        1.23,
+        1.64,
+        1.1
+      ],
+      "description": "Ceramic dragon planter pot with miniature banyan / ficus bonsai tree (Chậu cây cảnh sân trường).",
+      "tags": [
+        "prop",
+        "bonsai",
+        "tree",
+        "courtyard",
+        "vietnam"
+      ]
+    },
+    {
+      "id": "CB_GAME_ChalkBox_VN_A",
+      "category": "GAME",
+      "path": "assets/exported/game/CB_GAME_ChalkBox_VN_A.glb",
+      "metaPath": "assets/exported/game/CB_GAME_ChalkBox_VN_A.meta.json",
+      "byteSize": 53516,
+      "triangles": 588,
+      "bounds": [
+        0.28,
+        0.15,
+        0.18
+      ],
+      "description": "Vietnamese cardboard chalk box pickup with white and glowing chalk sticks (Hộp phấn Mic / Bến Nghé).",
+      "tags": [
+        "gameplay",
+        "pickup",
+        "chalk",
+        "economy",
+        "vietnam"
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "mapId": "vietnam_quoc_hoc_hue",
+      "name": "Trường THPT Chuyên Quốc Học Huế",
+      "location": "Huế, Thừa Thiên Huế, Việt Nam (Bờ Sông Hương)",
+      "yearFounded": 1896,
+      "path": "assets/levels/vietnam_quoc_hoc_hue.json",
+      "boxCount": 33,
+      "chalkBoxCount": 6,
+      "extractionZones": [
+        {
+          "id": "extract-song-huong",
+          "center": [
+            0,
+            0,
+            -29
+          ],
+          "radius": 3.5,
+          "label": "Bến Thuyền Sông Hương"
+        }
+      ]
+    },
+    {
+      "mapId": "vietnam_chu_van_an_hanoi",
+      "name": "Trường THPT Chu Văn An Hà Nội (Trường Bưởi)",
+      "location": "Tây Hồ, Hà Nội, Việt Nam (Bờ Hồ Tây lộng gió)",
+      "yearFounded": 1908,
+      "path": "assets/levels/vietnam_chu_van_an_hanoi.json",
+      "boxCount": 22,
+      "chalkBoxCount": 6,
+      "extractionZones": [
+        {
+          "id": "extract-ho-tay",
+          "center": [
+            0,
+            0,
+            -30
+          ],
+          "radius": 3.5,
+          "label": "Bến Thuyền Hồ Tây"
+        }
+      ]
+    },
+    {
+      "mapId": "vietnam_da_lat_lycee",
+      "name": "Trường Lycée Yersin Đà Lạt (CĐ Sư Phạm Đà Lạt)",
+      "location": "Đà Lạt, Lâm Đồng, Tây Nguyên, Việt Nam",
+      "yearFounded": 1927,
+      "path": "assets/levels/vietnam_da_lat_lycee.json",
+      "boxCount": 23,
+      "chalkBoxCount": 6,
+      "extractionZones": [
+        {
+          "id": "extract-doi-thong",
+          "center": [
+            0,
+            1.2,
+            24
+          ],
+          "radius": 4,
+          "label": "Đỉnh Đồi Thông Sương Mù"
+        }
+      ]
+    }
+  ]
+}

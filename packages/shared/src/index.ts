@@ -94,6 +94,15 @@ export {
   type StaticBox,
   type SurfaceKind,
 } from './world/greyboxRoom';
+export {
+  createQuocHocHueLevel,
+  createChuVanAnLevel,
+  createDaLatLyceeLevel,
+  getVietnamLevel,
+  VIETNAM_MAPS,
+  type VietnamMapId,
+  type VietnamMapMetadata,
+} from './world/vietnamMaps';
 export { createStaticWorld, type PhysicsWorld, type Rapier } from './physics/staticWorld';
 
 export type {

@@ -1,0 +1,47 @@
+{
+  "id": "CB_ENV_VN_Wall_RedBrick_A",
+  "category": "ENV",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Imperial Hue and Dalat style colonial red brick arch wall (4m x 3m x 0.3m).",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.025Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 72,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      4.1,
+      3,
+      0.36
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      4,
+      3,
+      0.3
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 4,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

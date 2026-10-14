@@ -1,0 +1,47 @@
+{
+  "id": "CB_ENV_VN_Gate_TamQuan_A",
+  "category": "ENV",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Traditional Vietnamese ceremonial gate (Cổng Tam Quan Quốc Học Huế) with imperial red pillars and terracotta roof eaves.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.042Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 108,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      6.2,
+      4.92,
+      1.4
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      6,
+      4.5,
+      1.4
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

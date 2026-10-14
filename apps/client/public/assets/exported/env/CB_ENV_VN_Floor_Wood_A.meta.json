@@ -1,0 +1,47 @@
+{
+  "id": "CB_ENV_VN_Floor_Wood_A",
+  "category": "ENV",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Aged dark teak plank hardwood floor (4m x 4m).",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.031Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 108,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      4,
+      0.16,
+      4
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      4,
+      0.15,
+      4
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 4,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

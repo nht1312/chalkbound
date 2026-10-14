@@ -1,0 +1,47 @@
+{
+  "id": "CB_ENV_VN_Wall_YellowStucco_A",
+  "category": "ENV",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Indochinese French colonial yellow ochre plaster wall (4m x 3m x 0.2m) with plinth and crown molding.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.021Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 36,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      4,
+      3,
+      0.26
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      4,
+      3,
+      0.2
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 4,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

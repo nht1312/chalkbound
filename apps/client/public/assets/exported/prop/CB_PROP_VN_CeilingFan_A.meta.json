@@ -1,0 +1,47 @@
+{
+  "id": "CB_PROP_VN_CeilingFan_A",
+  "category": "PROP",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Classic green 3-blade electric ceiling fan (Quạt trần Vinawind).",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.061Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 116,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      1.28,
+      0.73,
+      1.11
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      1.4,
+      0.7,
+      1.4
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "id": "CB_GAME_ChalkBox_VN_A",
+  "category": "GAME",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Vietnamese cardboard chalk box pickup with white and glowing chalk sticks (Hộp phấn Mic / Bến Nghé).",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.122Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 588,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.28,
+      0.15,
+      0.18
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      0.28,
+      0.12,
+      0.18
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

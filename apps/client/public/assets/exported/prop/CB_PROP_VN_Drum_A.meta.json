@@ -1,0 +1,47 @@
+{
+  "id": "CB_PROP_VN_Drum_A",
+  "category": "PROP",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Traditional red lacquer school drum (Trống trường) on ornamental wooden cradle stand.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.066Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 272,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.91,
+      1.59,
+      0.98
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      0.9,
+      1.5,
+      0.8
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

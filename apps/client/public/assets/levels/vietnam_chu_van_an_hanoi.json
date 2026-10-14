@@ -1,0 +1,390 @@
+{
+  "mapId": "vietnam_chu_van_an_hanoi",
+  "name": "Trường THPT Chu Văn An Hà Nội (Trường Bưởi)",
+  "location": "Tây Hồ, Hà Nội, Việt Nam (Bờ Hồ Tây lộng gió)",
+  "yearFounded": 1908,
+  "description": "Trường Bưởi lịch sử với kiến trúc Đông Dương tường vàng mái ngói đỏ, Nhà Bát Giác tráng lệ, hàng xà cừ trăm tuổi và con đường dẫn thẳng ra mặt nước mờ sương Hồ Tây.",
+  "spawn": [
+    0,
+    0.1,
+    8
+  ],
+  "extractionZones": [
+    {
+      "id": "extract-ho-tay",
+      "center": [
+        0,
+        0,
+        -30
+      ],
+      "radius": 3.5,
+      "label": "Bến Thuyền Hồ Tây"
+    }
+  ],
+  "boxes": [
+    {
+      "id": "cva-ground",
+      "kind": "floor",
+      "center": [
+        0,
+        -0.1,
+        0
+      ],
+      "halfExtents": [
+        28,
+        0.1,
+        28
+      ]
+    },
+    {
+      "id": "cva-batgiac-core",
+      "kind": "floor",
+      "center": [
+        0,
+        0.2,
+        -5
+      ],
+      "halfExtents": [
+        5.5,
+        0.2,
+        5.5
+      ]
+    },
+    {
+      "id": "cva-batgiac-wall-n",
+      "kind": "wall",
+      "center": [
+        0,
+        2.5,
+        -10.5
+      ],
+      "halfExtents": [
+        4.5,
+        2.5,
+        0.3
+      ]
+    },
+    {
+      "id": "cva-batgiac-wall-s",
+      "kind": "wall",
+      "center": [
+        0,
+        2.5,
+        0.5
+      ],
+      "halfExtents": [
+        4.5,
+        2.5,
+        0.3
+      ]
+    },
+    {
+      "id": "cva-batgiac-wall-w",
+      "kind": "wall",
+      "center": [
+        -5.5,
+        2.5,
+        -5
+      ],
+      "halfExtents": [
+        0.3,
+        2.5,
+        4.5
+      ]
+    },
+    {
+      "id": "cva-batgiac-wall-e",
+      "kind": "wall",
+      "center": [
+        5.5,
+        2.5,
+        -5
+      ],
+      "halfExtents": [
+        0.3,
+        2.5,
+        4.5
+      ]
+    },
+    {
+      "id": "cva-batgiac-table-1",
+      "kind": "desk",
+      "center": [
+        -2.5,
+        0.5,
+        -5
+      ],
+      "halfExtents": [
+        1.5,
+        0.5,
+        1.2
+      ]
+    },
+    {
+      "id": "cva-batgiac-table-2",
+      "kind": "desk",
+      "center": [
+        2.5,
+        0.5,
+        -5
+      ],
+      "halfExtents": [
+        1.5,
+        0.5,
+        1.2
+      ]
+    },
+    {
+      "id": "cva-batgiac-blackboard",
+      "kind": "blackboard",
+      "center": [
+        0,
+        2,
+        -10.1
+      ],
+      "halfExtents": [
+        3,
+        0.8,
+        0.05
+      ]
+    },
+    {
+      "id": "cva-wing-floor",
+      "kind": "floor",
+      "center": [
+        0,
+        -0.05,
+        16
+      ],
+      "halfExtents": [
+        22,
+        0.1,
+        6
+      ]
+    },
+    {
+      "id": "cva-wing-wall-back",
+      "kind": "wall",
+      "center": [
+        0,
+        3.2,
+        21.8
+      ],
+      "halfExtents": [
+        22,
+        3.2,
+        0.25
+      ]
+    },
+    {
+      "id": "cva-wing-wall-front",
+      "kind": "wall",
+      "center": [
+        0,
+        3.2,
+        10.2
+      ],
+      "halfExtents": [
+        22,
+        3.2,
+        0.25
+      ]
+    },
+    {
+      "id": "cva-wing-wall-left",
+      "kind": "wall",
+      "center": [
+        -21.8,
+        3.2,
+        16
+      ],
+      "halfExtents": [
+        0.25,
+        3.2,
+        6
+      ]
+    },
+    {
+      "id": "cva-wing-wall-right",
+      "kind": "wall",
+      "center": [
+        21.8,
+        3.2,
+        16
+      ],
+      "halfExtents": [
+        0.25,
+        3.2,
+        6
+      ]
+    },
+    {
+      "id": "cva-class-1-blackboard",
+      "kind": "blackboard",
+      "center": [
+        -14,
+        1.8,
+        21.5
+      ],
+      "halfExtents": [
+        2.4,
+        0.7,
+        0.05
+      ]
+    },
+    {
+      "id": "cva-class-1-desk",
+      "kind": "desk",
+      "center": [
+        -14,
+        0.45,
+        15
+      ],
+      "halfExtents": [
+        2.5,
+        0.45,
+        0.9
+      ]
+    },
+    {
+      "id": "cva-class-2-blackboard",
+      "kind": "blackboard",
+      "center": [
+        14,
+        1.8,
+        21.5
+      ],
+      "halfExtents": [
+        2.4,
+        0.7,
+        0.05
+      ]
+    },
+    {
+      "id": "cva-class-2-desk",
+      "kind": "desk",
+      "center": [
+        14,
+        0.45,
+        15
+      ],
+      "halfExtents": [
+        2.5,
+        0.45,
+        0.9
+      ]
+    },
+    {
+      "id": "cva-lake-embankment",
+      "kind": "wall",
+      "center": [
+        0,
+        0.6,
+        -26
+      ],
+      "halfExtents": [
+        26,
+        0.6,
+        0.5
+      ]
+    },
+    {
+      "id": "cva-lake-pier",
+      "kind": "floor",
+      "center": [
+        0,
+        -0.1,
+        -30
+      ],
+      "halfExtents": [
+        2.5,
+        0.15,
+        4.5
+      ]
+    },
+    {
+      "id": "cva-tree-1",
+      "kind": "wall",
+      "center": [
+        -12,
+        1.5,
+        0
+      ],
+      "halfExtents": [
+        1.2,
+        1.5,
+        1.2
+      ]
+    },
+    {
+      "id": "cva-tree-2",
+      "kind": "wall",
+      "center": [
+        12,
+        1.5,
+        0
+      ],
+      "halfExtents": [
+        1.2,
+        1.5,
+        1.2
+      ]
+    }
+  ],
+  "chalkBoxes": [
+    {
+      "id": 201,
+      "position": [
+        -14,
+        0.9,
+        15
+      ],
+      "amount": 25
+    },
+    {
+      "id": 202,
+      "position": [
+        14,
+        0.9,
+        15
+      ],
+      "amount": 25
+    },
+    {
+      "id": 203,
+      "position": [
+        -2.5,
+        0.9,
+        -5
+      ],
+      "amount": 30
+    },
+    {
+      "id": 204,
+      "position": [
+        2.5,
+        0.9,
+        -5
+      ],
+      "amount": 30
+    },
+    {
+      "id": 205,
+      "position": [
+        0,
+        0.2,
+        5
+      ],
+      "amount": 20
+    },
+    {
+      "id": 206,
+      "position": [
+        0,
+        0.2,
+        -28
+      ],
+      "amount": 40
+    }
+  ]
+}

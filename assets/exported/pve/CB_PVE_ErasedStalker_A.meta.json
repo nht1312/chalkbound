@@ -1,0 +1,47 @@
+{
+  "id": "CB_PVE_ErasedStalker_A",
+  "category": "PVE",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "The Hall Monitor (\"Giám Thị\"): Tall shadowy disciplinary specter with piercing red chalk spectacles and heavy ruler.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.013Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 128,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.84,
+      2.02,
+      1.02
+    ]
+  },
+  "collision": {
+    "type": "capsule",
+    "radius": 0.4,
+    "height": 2.15
+  },
+  "materials": [
+    "CB_MAT_ErasedCoat",
+    "CB_MAT_SpectacleGlow"
+  ],
+  "vietnamContext": {
+    "lore": "Giám thị hắc ám tuần tra hành lang"
+  },
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

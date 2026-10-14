@@ -1,0 +1,47 @@
+{
+  "id": "CB_PROP_VN_Desk_A",
+  "category": "PROP",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "Authentic wooden double school desk with attached bench, pencil groove, and book compartment.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.048Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 72,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      1.2,
+      0.76,
+      0.88
+    ]
+  },
+  "collision": {
+    "type": "box",
+    "dimensions": [
+      1.2,
+      0.75,
+      0.8
+    ]
+  },
+  "materials": [
+    "CB_MAT_Default"
+  ],
+  "vietnamContext": {},
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}

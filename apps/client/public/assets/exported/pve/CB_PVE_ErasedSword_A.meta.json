@@ -1,0 +1,47 @@
+{
+  "id": "CB_PVE_ErasedSword_A",
+  "category": "PVE",
+  "version": 1,
+  "source": {
+    "origin": "procedural-generator",
+    "tool": "ChalkBound Vietnam Asset Pipeline v1.0",
+    "prompt": "The Erased (\"Kẻ Bị Xóa\"): Corrupted blackboard entity with glowing chalk runes and a razor-sharp erased chalk blade arm.",
+    "licence": "Proprietary / ChalkBound Game Project",
+    "processedAt": "2026-10-14T11:20:43.009Z",
+    "processedBy": "tools/asset-generator/generateAssets.mjs"
+  },
+  "geometry": {
+    "lod0Triangles": 160,
+    "lodCount": 2,
+    "lodDistances": [
+      0,
+      15,
+      35
+    ],
+    "boundsMetres": [
+      0.77,
+      1.87,
+      0.52
+    ]
+  },
+  "collision": {
+    "type": "capsule",
+    "radius": 0.35,
+    "height": 1.9
+  },
+  "materials": [
+    "CB_MAT_ErasedShadow",
+    "CB_MAT_ChalkRuneGlow"
+  ],
+  "vietnamContext": {
+    "lore": "Linh hồn kẻ bị xóa nhòa trong bảng đen"
+  },
+  "grid": {
+    "snap": 1,
+    "occupies": [
+      1,
+      1,
+      1
+    ]
+  }
+}
