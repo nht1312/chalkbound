@@ -1,4 +1,6 @@
-import type { Vec3 } from '@chalkbound/shared';
+import { lookDirection, type Vec3 } from '@chalkbound/shared';
+
+export { lookDirection };
 
 export interface TargetCandidate {
   readonly id: number;
@@ -12,12 +14,6 @@ export interface TargetingConfig {
   readonly range: number;
   /** Half-angle of the aim cone, radians. */
   readonly maxAngleRadians: number;
-}
-
-/** Unit look vector for the FppCamera convention: yaw 0 faces -Z, positive pitch looks up. */
-export function lookDirection(yaw: number, pitch: number): Vec3 {
-  const cosPitch = Math.cos(pitch);
-  return { x: -Math.sin(yaw) * cosPitch, y: Math.sin(pitch), z: -Math.cos(yaw) * cosPitch };
 }
 
 /**

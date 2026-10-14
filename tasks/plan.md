@@ -142,7 +142,7 @@ Continuing Phase 4's D-15…D-19; these would be recorded as **D-20 … D-27**.
   *Depends on:* T1. *Files:* `shared/sim/transformHistory.ts` (+ test).
   *Scope:* S.
 
-- [ ] **T4 — The swing arc, shape-cast against the world (shared).**
+- [x] **T4 — The swing arc, shape-cast against the world (shared).**
   Given an attacker's eye, facing and reach, cast the arc and return the
   nearest candidate: a player capsule, a structure, a dummy, or nothing. The
   cast runs against rewound capsules, so it takes transforms as arguments

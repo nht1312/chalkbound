@@ -58,7 +58,7 @@ export {
   type InteractResult,
   type PlayerId,
 } from './sim/MatchSimulation';
-export { eyePosition, withinInteractRange } from './sim/interaction';
+export { eyePosition, lookDirection, withinInteractRange } from './sim/interaction';
 export { SimulationHost } from './sim/SimulationHost';
 export {
   createPlayerBody,
@@ -101,6 +101,15 @@ export {
   TransformHistory,
   type RecordedTransform,
 } from './sim/transformHistory';
+export {
+  castSwing,
+  type RewoundPlayer,
+  type SwingHit,
+  type SwingSource,
+  type SwingTarget,
+  type SwingTargetKind,
+  type SwingWorld,
+} from './sim/swingCast';
 export { addChalk } from './sim/chalk';
 export { applyDrawMode, isDrawing } from './sim/drawMode';
 export {

@@ -7,6 +7,13 @@ const Group = {
   Player: 1 << 1,
   /** Walls and bridges players drew. Solid from their `solidFromTick`. */
   Drawn: 1 << 2,
+  /**
+   * Things a swing may hit that are not level geometry: the training dummy,
+   * and the stand-ins the authority poses where players *were* when an
+   * attacker swung (ARCHITECTURE §5.4). Live player capsules are deliberately
+   * not in this group — a hit test must never consult the present.
+   */
+  Hittable: 1 << 3,
 } as const;
 
 const ALL = 0xffff;
@@ -27,6 +34,26 @@ export const PLAYER_GROUPS = interactionGroups(Group.Player, ALL);
  * drew and a floor that was always there (SPEC §7.4).
  */
 export const DRAWN_GROUPS = interactionGroups(Group.Drawn, ALL);
+
+/** A rewound stand-in. It exists for one hit test and blocks nothing. */
+export const HITTABLE_GROUPS = interactionGroups(Group.Hittable, ALL);
+
+/**
+ * The training dummy: solid enough to walk into, and hittable. It is a member
+ * of `Static` as well so ordinary movement treats it as part of the room,
+ * which saves teaching the movement filter about a third kind of obstacle.
+ */
+export const DUMMY_GROUPS = interactionGroups(Group.Static | Group.Hittable, ALL);
+
+/**
+ * What a swing may hit: the room, what players built in it, and the stand-ins
+ * posed where its targets were. Live player capsules are excluded, because
+ * the whole point of lag compensation is to test against the past.
+ */
+export const SWING_QUERY = interactionGroups(
+  Group.Hittable,
+  Group.Static | Group.Drawn | Group.Hittable,
+);
 
 /**
  * Filter for a player's own movement queries: level geometry and anything

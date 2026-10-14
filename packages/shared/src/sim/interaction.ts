@@ -10,6 +10,17 @@ export function eyePosition(player: PlayerState): Vec3 {
 }
 
 /**
+ * Unit look vector for the camera convention both sides share: yaw 0 faces
+ * -Z, positive pitch looks up. It lives here rather than in the client
+ * because the authority aims a swing with it, and two implementations of
+ * "where is this player looking" is one too many.
+ */
+export function lookDirection(yaw: number, pitch: number): Vec3 {
+  const cosPitch = Math.cos(pitch);
+  return vec3(-Math.sin(yaw) * cosPitch, Math.sin(pitch), -Math.cos(yaw) * cosPitch);
+}
+
+/**
  * Proximity rule the authority applies to every interaction intent. Line of
  * sight is not checked yet: the greybox is a single room (revisit in Phase 6).
  */
