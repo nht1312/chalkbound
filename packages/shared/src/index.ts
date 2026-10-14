@@ -86,6 +86,14 @@ export {
   type SwingPhase,
   type SwingState,
 } from './sim/swingState';
+export {
+  applyDamage,
+  FULL_HEALTH,
+  isAlive,
+  tickRespawn,
+  type HealthState,
+  type RespawnTick,
+} from './sim/health';
 export { addChalk } from './sim/chalk';
 export { applyDrawMode, isDrawing } from './sim/drawMode';
 export {

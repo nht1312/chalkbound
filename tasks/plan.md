@@ -110,7 +110,7 @@ Continuing Phase 4's D-15…D-19; these would be recorded as **D-20 … D-27**.
 
 ## Tasks
 
-- [ ] **T1 — `config/combat.ts` and the swing state machine (shared).**
+- [x] **T1 — `config/combat.ts` and the swing state machine (shared).**
   The RD-04 numbers in one file, and a pure state machine beside them: idle →
   windup → active → recovery → idle, advanced by `dt`, with a predicate for
   whether a new swing may start. No physics, no world, no player.
@@ -120,7 +120,7 @@ Continuing Phase 4's D-15…D-19; these would be recorded as **D-20 … D-27**.
   *Depends on:* nothing. *Files:* `shared/config/combat.ts`,
   `shared/sim/swingState.ts` (+ test). *Scope:* S.
 
-- [ ] **T2 — Player health, death and respawn (shared, no combat attached).**
+- [x] **T2 — Player health, death and respawn (shared, no combat attached).**
   The arithmetic alone, as Phase 4 did for structures: a `damagePlayer()`
   entry point with nothing swinging at it. Death at zero, a respawn countdown,
   full health on return, chalk kept, hands emptied (decision 8).

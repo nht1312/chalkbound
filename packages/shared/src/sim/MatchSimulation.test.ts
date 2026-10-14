@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { DRAWING } from '../config/drawing';
+import { COMBAT } from '../config/combat';
 import { CREATION } from '../config/creation';
 import { ECONOMY } from '../config/economy';
 import { MOVEMENT } from '../config/movement';
@@ -784,5 +785,106 @@ describe('MatchSimulation drawing submissions', () => {
       heldChalk: ECONOMY.chalk.perBox,
     });
     expect(result.outcome).toEqual(toDrawingResultOutcome(local));
+  });
+});
+
+describe('MatchSimulation player health and death', () => {
+  const MAX = COMBAT.player.maxHealth;
+  const SWORD = COMBAT.armed.damage;
+  const RESPAWN_TICKS = Math.ceil(COMBAT.player.respawnDelaySeconds * TICKS_PER_SECOND);
+
+  /** A player who has drawn a sword and is holding it. */
+  function armedSim(): MatchSimulation {
+    const fixture = CORPUS.find((f) => f.name === 'sword-clean');
+    if (!fixture) throw new Error('No sword-clean fixture');
+    const sim = new MatchSimulation(RAPIER, {
+      ...level,
+      chalkBoxes: [{ id: 1, position: vec3(0, 1.2, -1), amount: ECONOMY.chalk.max }],
+    });
+    sim.addPlayer(1);
+    sim.interact(1, 1);
+    sim.submitDrawing(1, fixture.sketch);
+    return sim;
+  }
+
+  it('starts a player alive at full health', () => {
+    const sim = createSim();
+    sim.addPlayer(1);
+    expect(sim.health(1)).toBe(MAX);
+    expect(sim.isAlive(1)).toBe(true);
+  });
+
+  it('knows nothing about a player who is not there', () => {
+    const sim = createSim();
+    expect(sim.health(1)).toBeUndefined();
+    expect(sim.isAlive(1)).toBe(false);
+    expect(sim.damagePlayer(1, SWORD)).toBe('missing');
+  });
+
+  it('takes health off without killing', () => {
+    const sim = createSim();
+    sim.addPlayer(1);
+    expect(sim.damagePlayer(1, SWORD)).toBe('damaged');
+    expect(sim.health(1)).toBe(MAX - SWORD);
+  });
+
+  it('kills on the third sword hit and reports it once', () => {
+    const sim = createSim();
+    sim.addPlayer(1);
+    expect(sim.damagePlayer(1, SWORD)).toBe('damaged');
+    expect(sim.damagePlayer(1, SWORD)).toBe('damaged');
+    expect(sim.damagePlayer(1, SWORD)).toBe('killed');
+    expect(sim.isAlive(1)).toBe(false);
+    expect(sim.damagePlayer(1, SWORD)).toBe('already-dead');
+  });
+
+  it('empties the hands of a player who dies', () => {
+    const sim = armedSim();
+    expect(sim.equipped(1)).toBeDefined();
+    sim.damagePlayer(1, MAX);
+    expect(sim.equipped(1)).toBeUndefined();
+  });
+
+  it('stops a dead player moving, while still acknowledging their input', () => {
+    const sim = createSim();
+    sim.addPlayer(1);
+    sim.submitInputs(1, commands(1, 10, { moveZ: 1 }));
+    for (let i = 0; i < 5; i++) sim.step();
+    const moved = sim.playerState(1)?.position.z ?? 0;
+    expect(moved).not.toBe(0);
+
+    sim.damagePlayer(1, MAX);
+    const ackedBefore = sim.lastProcessedSeq(1);
+    sim.submitInputs(1, commands(ackedBefore + 1, 4, { moveZ: 1 }));
+    for (let i = 0; i < 5; i++) sim.step();
+    expect(sim.playerState(1)?.position.z).toBe(moved);
+    expect(sim.lastProcessedSeq(1)).toBeGreaterThan(ackedBefore);
+  });
+
+  it('stands the player back up at the spawn, at full health', () => {
+    const sim = createSim();
+    sim.addPlayer(1);
+    sim.submitInputs(1, commands(1, 60, { moveZ: 1 }));
+    for (let i = 0; i < 30; i++) sim.step();
+    sim.damagePlayer(1, MAX);
+
+    for (let i = 0; i < RESPAWN_TICKS - 1; i++) sim.step();
+    expect(sim.isAlive(1)).toBe(false);
+
+    sim.step();
+    expect(sim.isAlive(1)).toBe(true);
+    expect(sim.health(1)).toBe(MAX);
+    expect(sim.playerState(1)?.position.x).toBeCloseTo(level.spawn.x, 6);
+    expect(sim.playerState(1)?.position.z).toBeCloseTo(level.spawn.z, 6);
+  });
+
+  it('ignores a meaningless blow rather than healing', () => {
+    const sim = createSim();
+    sim.addPlayer(1);
+    sim.damagePlayer(1, SWORD);
+    for (const amount of [0, -50, Number.NaN]) {
+      expect(sim.damagePlayer(1, amount)).toBe('damaged');
+      expect(sim.health(1)).toBe(MAX - SWORD);
+    }
   });
 });

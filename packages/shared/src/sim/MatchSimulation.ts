@@ -26,6 +26,7 @@ import type {
 } from '../protocol/messages';
 import type { ChalkBoxSpawn, LevelData } from '../world/greyboxRoom';
 import { addChalk } from './chalk';
+import { applyDamage, FULL_HEALTH, isAlive, tickRespawn, type HealthState } from './health';
 import { withinInteractRange } from './interaction';
 import {
   createPlayerBody,
@@ -80,6 +81,8 @@ interface SimPlayer {
   lastProcessedSeq: number;
   /** Commands accepted but not yet applied, ascending by seq. */
   readonly queue: InputCommand[];
+  /** Authoritative health; changes only through {@link MatchSimulation.damagePlayer}. */
+  health: HealthState;
   /** Authoritative chalk meter; changes through `interact` and `submitDrawing`. */
   chalk: number;
   /** Tick of the last *accepted* drawing, for rate limiting. */
@@ -151,6 +154,7 @@ export class MatchSimulation {
       state: initialPlayerState(this.level.spawn),
       lastProcessedSeq: 0,
       queue: [],
+      health: FULL_HEALTH,
       chalk: ECONOMY.chalk.starting,
       lastDrawingTick: Number.NEGATIVE_INFINITY,
       yaw: 0,
@@ -229,6 +233,35 @@ export class MatchSimulation {
     if (collider) removeDrawnCollider(this.world, collider);
     this.structureColliders.delete(id);
     return this.structures.delete(id);
+  }
+
+  /** `id`'s authoritative health, or undefined if there is no such player. */
+  health(id: PlayerId): number | undefined {
+    return this.players.get(id)?.health.value;
+  }
+
+  isAlive(id: PlayerId): boolean {
+    const player = this.players.get(id);
+    return player !== undefined && isAlive(player.health);
+  }
+
+  /**
+   * Damages a player, killing them when their health runs out (SPEC §8).
+   *
+   * Like `damageDrawnObject`, this is the *only* way health changes, and it
+   * takes no attacker: who swung decides nothing about what a blow does. A
+   * player who dies drops the weapon in their hands (plan decision 8) — it
+   * was carried, and carrying stopped — and stands back up at the spawn when
+   * the countdown in `step()` runs out.
+   */
+  damagePlayer(id: PlayerId, amount: number): 'damaged' | 'killed' | 'already-dead' | 'missing' {
+    const player = this.players.get(id);
+    if (!player) return 'missing';
+    if (!isAlive(player.health)) return 'already-dead';
+    player.health = applyDamage(player.health, amount);
+    if (isAlive(player.health)) return 'damaged';
+    player.equipped = undefined;
+    return 'killed';
   }
 
   /** What `id` is holding, if anything. */
@@ -382,11 +415,22 @@ export class MatchSimulation {
   step(): void {
     this.currentTick++;
     for (const player of this.players.values()) {
+      const alive = isAlive(player.health);
+      if (!alive) {
+        const respawn = tickRespawn(player.health, FIXED_DT);
+        player.health = respawn.health;
+        if (respawn.respawned) player.state = initialPlayerState(this.level.spawn);
+      }
       for (let i = 0; i < NETWORK.maxInputsPerTick; i++) {
         const command = player.queue.shift();
         if (!command) break;
-        player.state = stepPlayer(player.state, command, player.body, this.world, FIXED_DT);
-        player.yaw = command.yaw;
+        // The dead keep sending input, and it keeps being acknowledged: an
+        // unanswered seq would pile up in the client's resend buffer for the
+        // whole respawn. It simply moves nobody.
+        if (alive) {
+          player.state = stepPlayer(player.state, command, player.body, this.world, FIXED_DT);
+          player.yaw = command.yaw;
+        }
         player.lastProcessedSeq = command.seq;
       }
     }
